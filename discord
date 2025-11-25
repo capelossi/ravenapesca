@@ -1,0 +1,834 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { Fish, ShoppingBag, User, Loader, Zap, DollarSign } from 'lucide-react'; // Ícone principal mudado para Fish
+
+// --- Global Environment Variables (Provided by Canvas) ---
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+// --- End Global Variables ---
+
+// Game Configuration
+const COOLDOWN_BASE_MS = 60 * 60 * 1000; // 1 hour
+const COOLDOWN_LEVEL_50_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_BAIT_BASE = 7;
+const MAX_BAIT_LEVEL_30 = 10;
+const XP_PER_CATCH = 10;
+const LEVEL_XP_REQUIREMENTS = {
+  1: 0, 2: 100, 3: 250, 4: 450, 5: 700, 10: 5000, 20: 20000, 30: 40000, 40: 70000, 50: 120000,
+  60: 200000, 70: 350000, 80: 500000, 90: 700000, 100: 1000000
+};
+
+// --- NOVAS DEFINIÇÕES DE ITENS DE PESCA E LIXO (MAIS DE 60 ITENS) ---
+
+// 1. LIXO (30 Tipos - Valor baixo, Risco de 0 Moedas)
+const TRASH_TYPES = [
+    // Lixos solicitados e comuns em ambientes marinhos
+    { name: "Sacola Plástica", rarity: "Lixo", minWeight: 0.05, maxWeight: 0.15, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Garrafa PET", rarity: "Lixo", minWeight: 0.1, maxWeight: 0.3, baseValue: 1, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Pneu Velho", rarity: "Lixo", minWeight: 5.0, maxWeight: 15.0, baseValue: 5, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Camisinha Usada", rarity: "Lixo", minWeight: 0.01, maxWeight: 0.05, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Resto de Rede de Pesca", rarity: "Lixo", minWeight: 2.0, maxWeight: 8.0, baseValue: 2, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Chinelo Furado", rarity: "Lixo", minWeight: 0.2, maxWeight: 0.6, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Lata de Refrigerante", rarity: "Lixo", minWeight: 0.1, maxWeight: 0.2, baseValue: 1, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Cano PVC Quebrado", rarity: "Lixo", minWeight: 1.0, maxWeight: 4.0, baseValue: 3, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Embalagem de Salgadinho", rarity: "Lixo", minWeight: 0.01, maxWeight: 0.02, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Escova de Dentes Velha", rarity: "Lixo", minWeight: 0.05, maxWeight: 0.1, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Bola Murcha", rarity: "Lixo", minWeight: 0.5, maxWeight: 1.5, baseValue: 1, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Garrafa de Vidro Quebrada", rarity: "Lixo", minWeight: 0.3, maxWeight: 1.0, baseValue: 2, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Corda de Nylon", rarity: "Lixo", minWeight: 0.8, maxWeight: 2.5, baseValue: 2, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Isopor Flutuante", rarity: "Lixo", minWeight: 0.1, maxWeight: 0.5, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Lata de Óleo de Motor", rarity: "Lixo", minWeight: 0.4, maxWeight: 1.2, baseValue: 3, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Cartão de Crédito Vencido", rarity: "Lixo", minWeight: 0.01, maxWeight: 0.01, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Brinquedo de Plástico Quebrado", rarity: "Lixo", minWeight: 0.2, maxWeight: 0.7, baseValue: 1, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Pilha Alcalina Velha", rarity: "Lixo", minWeight: 0.1, maxWeight: 0.2, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Bateria de Celular", rarity: "Lixo", minWeight: 0.1, maxWeight: 0.3, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Recibo Molhado", rarity: "Lixo", minWeight: 0.01, maxWeight: 0.03, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Esponja de Louça", rarity: "Lixo", minWeight: 0.05, maxWeight: 0.1, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Tampinha de Garrafa", rarity: "Lixo", minWeight: 0.01, maxWeight: 0.01, baseValue: 0, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Pontas de Cigarro (Maço)", rarity: "Lixo", minWeight: 0.1, maxWeight: 0.3, baseValue: 1, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Saco de Cimento Vazio", rarity: "Lixo", minWeight: 0.3, maxWeight: 1.0, baseValue: 2, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Capa de Chuva Rasgada", rarity: "Lixo", minWeight: 0.5, maxWeight: 1.5, baseValue: 2, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Vassoura Quebrada", rarity: "Lixo", minWeight: 0.8, maxWeight: 2.0, baseValue: 3, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Cesto de Lixo Plástico", rarity: "Lixo", minWeight: 1.5, maxWeight: 4.0, baseValue: 4, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Filtro de Óleo Usado", rarity: "Lixo", minWeight: 0.5, maxWeight: 1.5, baseValue: 3, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Pedaço de Telha", rarity: "Lixo", minWeight: 3.0, maxWeight: 7.0, baseValue: 5, chance: 1.66, color: 'text-zinc-600' },
+    { name: "Revista Antiga", rarity: "Lixo", minWeight: 0.3, maxWeight: 0.8, baseValue: 1, chance: 1.66, color: 'text-zinc-600' }, // Total 30 Lixos -> 30 * 1.66% ≈ 50%
+];
+
+// 2. PEIXES (32 Tipos - Categorizados por Raridade)
+const FISH_TYPES = [
+    // Comum (10 Peixes - 30% Chance Total)
+    { name: "Sardinha Comum", rarity: "Comum", minWeight: 0.1, maxWeight: 0.3, baseValue: 10, chance: 3.0, color: 'text-gray-400' },
+    { name: "Tilápia do Nilo", rarity: "Comum", minWeight: 0.4, maxWeight: 1.5, baseValue: 15, chance: 3.0, color: 'text-gray-400' },
+    { name: "Manjuba", rarity: "Comum", minWeight: 0.05, maxWeight: 0.1, baseValue: 8, chance: 3.0, color: 'text-gray-400' },
+    { name: "Carpa Capim", rarity: "Comum", minWeight: 1.0, maxWeight: 3.0, baseValue: 25, chance: 3.0, color: 'text-gray-400' },
+    { name: "Tainha (Mugil liza)", rarity: "Comum", minWeight: 0.8, maxWeight: 2.5, baseValue: 20, chance: 3.0, color: 'text-gray-400' },
+    { name: "Corvina", rarity: "Comum", minWeight: 0.5, maxWeight: 1.8, baseValue: 18, chance: 3.0, color: 'text-gray-400' },
+    { name: "Pescada-Branca", rarity: "Comum", minWeight: 0.6, maxWeight: 2.0, baseValue: 22, chance: 3.0, color: 'text-gray-400' },
+    { name: "Pacu-Manteiga", rarity: "Comum", minWeight: 1.2, maxWeight: 3.5, baseValue: 30, chance: 3.0, color: 'text-gray-400' },
+    { name: "Lambari", rarity: "Comum", minWeight: 0.05, maxWeight: 0.2, baseValue: 5, chance: 3.0, color: 'text-gray-400' },
+    { name: "Traíra", rarity: "Comum", minWeight: 0.7, maxWeight: 2.2, baseValue: 28, chance: 3.0, color: 'text-gray-400' }, // Total 10 Peixes Comuns -> 30%
+
+    // Incomum (8 Peixes - 12% Chance Total)
+    { name: "Bacalhau do Atlântico", rarity: "Incomum", minWeight: 3.0, maxWeight: 10.0, baseValue: 50, chance: 1.5, color: 'text-green-500' },
+    { name: "Salmão do Pacífico", rarity: "Incomum", minWeight: 2.5, maxWeight: 8.0, baseValue: 60, chance: 1.5, color: 'text-green-500' },
+    { name: "Dourado", rarity: "Incomum", minWeight: 5.0, maxWeight: 12.0, baseValue: 75, chance: 1.5, color: 'text-green-500' },
+    { name: "Anchova", rarity: "Incomum", minWeight: 1.0, maxWeight: 3.0, baseValue: 45, chance: 1.5, color: 'text-green-500' },
+    { name: "Robalo Peva", rarity: "Incomum", minWeight: 2.0, maxWeight: 5.0, baseValue: 55, chance: 1.5, color: 'text-green-500' },
+    { name: "Linguado Gigante", rarity: "Incomum", minWeight: 4.0, maxWeight: 9.0, baseValue: 70, chance: 1.5, color: 'text-green-500' },
+    { name: "Camarão-Rosa (Macho)", rarity: "Incomum", minWeight: 0.5, maxWeight: 1.5, baseValue: 40, chance: 1.5, color: 'text-green-500' },
+    { name: "Atum-Rabilho (Jovem)", rarity: "Incomum", minWeight: 10.0, maxWeight: 25.0, baseValue: 100, chance: 1.5, color: 'text-green-500' }, // Total 8 Peixes Incomuns -> 12%
+
+    // Raro (6 Peixes - 5% Chance Total)
+    { name: "Garoupa Verdadeira", rarity: "Raro", minWeight: 8.0, maxWeight: 20.0, baseValue: 150, chance: 0.83, color: 'text-blue-500' },
+    { name: "Mero do Oceano", rarity: "Raro", minWeight: 20.0, maxWeight: 50.0, baseValue: 250, chance: 0.83, color: 'text-blue-500' },
+    { name: "Tambaqui", rarity: "Raro", minWeight: 10.0, maxWeight: 30.0, baseValue: 180, chance: 0.83, color: 'text-blue-500' },
+    { name: "Pirarucu (Jovem)", rarity: "Raro", minWeight: 15.0, maxWeight: 40.0, baseValue: 220, chance: 0.83, color: 'text-blue-500' },
+    { name: "Piranha-Vermelha (Mutante)", rarity: "Raro", minWeight: 0.5, maxWeight: 1.5, baseValue: 120, chance: 0.83, color: 'text-blue-500' },
+    { name: "Cavala Wahoo", rarity: "Raro", minWeight: 15.0, maxWeight: 35.0, baseValue: 300, chance: 0.83, color: 'text-blue-500' }, // Total 6 Peixes Raros -> 5%
+
+    // Épico (4 Peixes - 2.5% Chance Total)
+    { name: "Peixe-Espada", rarity: "Épico", minWeight: 50.0, maxWeight: 150.0, baseValue: 500, chance: 0.625, color: 'text-purple-500' },
+    { name: "Barracuda Gigante", rarity: "Épico", minWeight: 25.0, maxWeight: 70.0, baseValue: 450, chance: 0.625, color: 'text-purple-500' },
+    { name: "Tubarão-Martelo (Filhote)", rarity: "Épico", minWeight: 80.0, maxWeight: 200.0, baseValue: 700, chance: 0.625, color: 'text-purple-500' },
+    { name: "Peixe-Lua (Juvenil)", rarity: "Épico", minWeight: 100.0, maxWeight: 300.0, baseValue: 800, chance: 0.625, color: 'text-purple-500' }, // Total 4 Peixes Épicos -> 2.5%
+
+    // Lendário (2 Peixes - 0.5% Chance Total)
+    { name: "Marlim-Azul (Troféu)", rarity: "Lendário", minWeight: 300.0, maxWeight: 600.0, baseValue: 1500, chance: 0.25, color: 'text-yellow-400' },
+    { name: "Peixe-Serra Gigante", rarity: "Lendário", minWeight: 400.0, maxWeight: 800.0, baseValue: 2500, chance: 0.25, color: 'text-yellow-400' }, // Total 2 Peixes Lendários -> 0.5%
+];
+
+// Combina Peixes e Lixos em uma única lista de capturas
+const CAPTURE_TYPES = [...TRASH_TYPES, ...FISH_TYPES];
+
+// Shop Configuration (Fixed Items with Buffs - Sem alterações, apenas descrição adaptada)
+const SHOP_ITEMS = [
+  { id: 'rod_fiber', name: 'Vara de Fibra Reforçada', description: 'Aumenta a chance de Peixes Raros/Épicos em 15%.', cost: 500, type: 'rod', buff: { rarityBoost: 0.15 } },
+  { id: 'hat_lucky', name: 'Chapéu da Sorte', description: 'Aumenta todas as chances de raridade (exceto Lixo) em 5%.', cost: 1500, type: 'buff', buff: { luck: 0.05 } },
+  { id: 'bait_premium', name: 'Isca Premium de Brilho', description: 'Aumenta a chance de Lendários em 5% por uso (Consumível).', cost: 100, type: 'consumable', buff: { legendaryBoost: 0.05 } },
+];
+
+// Firebase Context
+let app = null;
+let db = null;
+let auth = null;
+
+// --- Main App Component ---
+const App = () => {
+  const [activeTab, setActiveTab] = useState('fishing');
+  const [userId, setUserId] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [userData, setUserData] = useState({
+    level: 1,
+    currentXp: 0,
+    coins: 100,
+    baitCount: MAX_BAIT_BASE,
+    lastBaitTime: Date.now(),
+    inventory: [], // Caught capture history
+    purchasedItems: [], // Permanent buffs/equipment
+    premiumBaitUses: 0, // Consumable bait counter
+  });
+  const [message, setMessage] = useState('');
+  const [isFishing, setIsFishing] = useState(false);
+
+  // Function to display user feedback messages
+  const showMessage = (msg) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(''), 5000);
+  };
+
+  // --- 1. FIREBASE AUTHENTICATION AND INITIALIZATION ---
+  useEffect(() => {
+    try {
+      if (!app) {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      }
+      
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          try {
+            if (initialAuthToken) {
+              await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (e) {
+            console.error("Authentication failed, falling back to anonymous sign-in failed:", e);
+          }
+        }
+        setUserId(auth.currentUser?.uid || crypto.randomUUID());
+        setIsAuthReady(true);
+      });
+
+      return () => unsubscribe();
+    } catch (e) {
+      console.error("Error initializing Firebase:", e);
+      showMessage("Erro ao conectar com o serviço de jogo.");
+      setIsAuthReady(true);
+    }
+  }, []);
+
+  // --- 2. FIRESTORE DATA MANAGEMENT (onSnapshot) ---
+  useEffect(() => {
+    if (!db || !userId || !isAuthReady) return;
+
+    const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'fishingGame', 'data');
+
+    // Function to initialize data if document doesn't exist
+    const initializeUserData = async () => {
+        try {
+            // Use the current initial state for initialization
+            await setDoc(userDocRef, userData, { merge: true }); 
+        } catch (e) {
+            console.error("Error initializing user data:", e);
+        }
+    };
+
+    // Real-time listener
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUserData(prev => ({
+                ...prev,
+                ...data,
+                // Ensure lastBaitTime is a number for date arithmetic
+                lastBaitTime: data.lastBaitTime ? (data.lastBaitTime.toDate ? data.lastBaitTime.toDate().getTime() : data.lastBaitTime) : Date.now(),
+            }));
+        } else {
+            initializeUserData();
+        }
+    }, (error) => {
+        console.error("Error listening to Firestore:", error);
+        showMessage("Erro ao sincronizar dados do jogo.");
+    });
+
+    return () => unsubscribe();
+  }, [db, userId, isAuthReady]);
+
+  // Function to save data updates
+  const saveUserData = useCallback(async (updates) => {
+    if (!db || !userId) return;
+    const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'fishingGame', 'data');
+    try {
+      await updateDoc(userDocRef, updates);
+    } catch (e) {
+      console.error("Error saving data:", e);
+      showMessage("Erro ao salvar progresso.");
+    }
+  }, [db, userId]);
+
+  // --- 3. DYNAMIC GAME STATS (useMemo) ---
+  const { level, baitCount, lastBaitTime, currentXp, inventory } = userData;
+
+  const maxBait = useMemo(() => {
+    return level >= 30 ? MAX_BAIT_LEVEL_30 : MAX_BAIT_BASE;
+  }, [level]);
+
+  const baitCooldownMs = useMemo(() => {
+    return level >= 50 ? COOLDOWN_LEVEL_50_MS : COOLDOWN_BASE_MS;
+  }, [level]);
+
+  const xpNeeded = useMemo(() => {
+    const nextLevel = level + 1;
+    let required = LEVEL_XP_REQUIREMENTS[nextLevel];
+    // Simple progression formula if not explicitly defined
+    if (!required) {
+        required = LEVEL_XP_REQUIREMENTS[level] * 1.5 || 100000;
+    }
+    return required;
+  }, [level]);
+  
+  const currentXpPercent = (currentXp / xpNeeded) * 100;
+  
+  const timeUntilBait = maxBait > baitCount ? Math.max(0, lastBaitTime + baitCooldownMs - Date.now()) : 0;
+  const timeRemainingText = timeUntilBait > 0
+    ? `${String(Math.floor(timeUntilBait / 60000)).padStart(2, '0')}:${String(Math.floor((timeUntilBait % 60000) / 1000)).padStart(2, '0')}`
+    : 'Pronto!';
+
+
+  // --- 4. LEVELING LOGIC ---
+  const checkLevelUp = useCallback((xp) => {
+    let currentLvl = userData.level;
+    let currentXp = xp;
+    let newLevel = currentLvl;
+    
+    // Recalcula o XP Necessário, garantindo que se está usando o valor atualizado
+    const getXpNeededForLevel = (lvl) => {
+        const nextLvl = lvl + 1;
+        let required = LEVEL_XP_REQUIREMENTS[nextLvl];
+        if (!required) {
+            // Formula simples para níveis não definidos explicitamente
+            required = (LEVEL_XP_REQUIREMENTS[lvl] || 1000) * 1.5;
+        }
+        return required;
+    };
+
+    let isLeveledUp = false;
+    // Continue subindo de nível enquanto o XP for suficiente
+    while (currentXp >= getXpNeededForLevel(newLevel)) { 
+        currentXp -= getXpNeededForLevel(newLevel);
+        newLevel++;
+        isLeveledUp = true;
+    }
+
+    if (isLeveledUp) {
+      showMessage(`🎉 Parabéns! Você subiu para o Nível ${newLevel}!`);
+      saveUserData({ level: newLevel, currentXp: currentXp });
+    } else {
+      saveUserData({ currentXp: currentXp });
+    }
+  }, [userData.level, saveUserData]); // Removi xpNeeded pois ele é recalculado dentro do callback
+
+  // --- 5. BAIT REGENERATION LOGIC ---
+  useEffect(() => {
+    if (!isAuthReady || !userId) return;
+
+    const checkBaitRegen = () => {
+      const now = Date.now();
+      let lastTime = lastBaitTime;
+      let currentBait = baitCount;
+      let newLastTime = lastTime;
+
+      // Calculate how many bait points should have been regenerated
+      while (currentBait < maxBait && now >= lastTime + baitCooldownMs) {
+        currentBait++;
+        lastTime += baitCooldownMs;
+        newLastTime = lastTime;
+      }
+      
+      if (currentBait !== baitCount) {
+        saveUserData({ 
+          baitCount: currentBait, 
+          lastBaitTime: newLastTime,
+        });
+      }
+    };
+
+    // Check every 5 seconds to ensure real-time update
+    const interval = setInterval(checkBaitRegen, 5000); 
+
+    return () => clearInterval(interval);
+  }, [isAuthReady, userId, baitCount, lastBaitTime, maxBait, baitCooldownMs, saveUserData]);
+
+
+  // --- 6. CATCH DETERMINATION LOGIC (Applying Buffs) ---
+  const determineCatch = useCallback(() => {
+    const { purchasedItems, premiumBaitUses } = userData;
+    let totalChance = 0;
+    
+    // Check for active permanent buffs
+    const fiberRodBuff = purchasedItems.find(item => item.id === 'rod_fiber')?.buff.rarityBoost || 0;
+    const luckyHatBuff = purchasedItems.find(item => item.id === 'hat_lucky')?.buff.luck || 0;
+    
+    // Check for consumable bait buff
+    const premiumBaitBuff = premiumBaitUses > 0 ? (SHOP_ITEMS.find(i => i.id === 'bait_premium')?.buff.legendaryBoost || 0) : 0;
+    
+    const chancesWithBuffs = CAPTURE_TYPES.map(capture => {
+      let baseChance = capture.chance;
+      
+      // Buffs de Rod e Luck NÃO afetam o LIXO
+      if (capture.rarity !== 'Lixo') {
+          // Apply Rarity Boost (Rod) to Raro/Épico
+          if (capture.rarity === 'Raro' || capture.rarity === 'Épico') {
+            baseChance += fiberRodBuff;
+          }
+          // Apply General Luck Boost (Hat) to all non-Lixo
+          baseChance += luckyHatBuff; 
+      }
+      
+      // Apply Premium Bait Boost (Consumable) - Afeta apenas Lendário
+      if (capture.rarity === 'Lendário') {
+        baseChance += premiumBaitBuff; 
+      }
+      
+      baseChance = Math.max(0, baseChance); // Ensure no negative chance
+      totalChance += baseChance;
+      return { ...capture, chance: baseChance };
+    });
+    
+    // Normalize chances based on the new total chance (crucial for random roll)
+    const normalizedChances = chancesWithBuffs.map(capture => ({
+      ...capture,
+      normalizedChance: capture.chance / totalChance
+    }));
+    
+    const roll = Math.random();
+    let cumulativeChance = 0;
+    let caughtCapture = null;
+    
+    for (const capture of normalizedChances) {
+      cumulativeChance += capture.normalizedChance;
+      if (roll <= cumulativeChance) {
+        caughtCapture = capture;
+        break;
+      }
+    }
+    
+    // Fallback to a Common Fish if rolling fails (shouldn't happen with normalization)
+    if (!caughtCapture) caughtCapture = FISH_TYPES[0]; 
+
+    // Calculate weight and value
+    const weight = caughtCapture.minWeight + (Math.random() * (caughtCapture.maxWeight - caughtCapture.minWeight));
+    // Valor baseado no peso (exceto lixo que tem valor baixo fixo)
+    const multiplier = caughtCapture.rarity === 'Lixo' ? 1 : (1 + (weight / 5)); 
+    let captureValue = Math.floor(caughtCapture.baseValue * multiplier); 
+    
+    // Garante que o valor do LIXO não passe muito de 5
+    if (caughtCapture.rarity === 'Lixo') {
+        captureValue = Math.min(captureValue, 5); 
+    }
+
+    return { caughtCapture, weight, captureValue };
+  }, [userData.purchasedItems, userData.premiumBaitUses]);
+
+
+  // --- 7. MAIN CAPTURE ACTION ---
+  const handleFish = () => {
+    if (baitCount <= 0) {
+      showMessage(`🎣 Você precisa de iscas! Recarrega em ${timeRemainingText}.`);
+      return;
+    }
+    
+    if (isFishing) return;
+    setIsFishing(true);
+    
+    // 1. Consume 1 bait
+    const newBaitCount = baitCount - 1;
+    const now = Date.now();
+    
+    // 2. Set new lastBaitTime only if bait count was max OR if a new cycle needs to start
+    let newLastBaitTime = lastBaitTime;
+    if (baitCount === maxBait || now > lastBaitTime + baitCooldownMs) {
+      newLastBaitTime = now;
+    } 
+
+    // 3. Consume 1 Premium Bait Use if available
+    const usePremiumBait = userData.premiumBaitUses > 0;
+    const newPremiumBaitUses = usePremiumBait ? userData.premiumBaitUses - 1 : 0;
+    
+    showMessage(`🌊 Lançando a linha de pesca...`);
+
+    // 4. Simulate capture time
+    setTimeout(() => {
+      const { caughtCapture, weight, captureValue } = determineCatch();
+      
+      const newCoins = userData.coins + captureValue;
+      const newXp = userData.currentXp + XP_PER_CATCH;
+      
+      const isLixo = caughtCapture.rarity === 'Lixo';
+      const messageAction = isLixo ? 'PESCADO!' : 'PESCADO!';
+      const messageGain = isLixo && captureValue === 0 ? 'Sem ganho de Moedas.' : `Ganhou ${captureValue} Moedas.`;
+
+      const newCatch = { 
+        name: caughtCapture.name, 
+        rarity: caughtCapture.rarity, 
+        weight: weight.toFixed(2), 
+        value: captureValue,
+        caughtAt: Date.now(),
+        color: caughtCapture.color,
+      };
+      
+      const newInventory = [newCatch, ...userData.inventory];
+
+      showMessage(`🎉 ${messageAction} Um(a) ${newCatch.name} (${newCatch.rarity}) de ${newCatch.weight} kg! ${messageGain}`);
+      
+      const updates = {
+        baitCount: newBaitCount,
+        lastBaitTime: newLastBaitTime,
+        coins: newCoins,
+        inventory: newInventory,
+        premiumBaitUses: newPremiumBaitUses,
+      };
+
+      saveUserData(updates);
+      checkLevelUp(newXp);
+      setIsFishing(false);
+    }, 3000); // 3 seconds wait
+  };
+
+  // --- 8. SHOP ACTION ---
+  const handlePurchase = (item) => {
+    if (userData.coins < item.cost) {
+      showMessage(`💰 Você não tem Moedas suficientes para comprar ${item.name}!`);
+      return;
+    }
+    
+    const newCoins = userData.coins - item.cost;
+
+    if (item.type === 'consumable') {
+        // Consumable (Premium Bait)
+        const newPremiumBaitUses = userData.premiumBaitUses + 1;
+        saveUserData({ coins: newCoins, premiumBaitUses: newPremiumBaitUses });
+        showMessage(`🛒 Você comprou ${item.name}! Você tem ${newPremiumBaitUses} usos.`);
+    } else {
+        // Permanent Equipment/Buff
+        const isOwned = userData.purchasedItems.some(p => p.id === item.id);
+        if (isOwned) {
+            showMessage(`✅ Você já possui o item: ${item.name}!`);
+            return;
+        }
+
+        const newPurchasedItems = [...userData.purchasedItems, item];
+        saveUserData({ coins: newCoins, purchasedItems: newPurchasedItems });
+        showMessage(`🛒 Você comprou: ${item.name}! O buff foi ativado.`);
+    }
+  };
+
+  // --- 9. SELL CAPTURE ACTION ---
+  const handleSellAllFish = () => {
+    if (inventory.length === 0) {
+      showMessage("🚫 Seu inventário está vazio! Faça uma captura antes de vender.");
+      return;
+    }
+
+    // Calculate total value of all captures in the inventory
+    const totalValue = inventory.reduce((sum, capture) => sum + capture.value, 0);
+
+    if (totalValue === 0) {
+      showMessage("🚫 As capturas no seu inventário não têm valor para venda.");
+      return;
+    }
+    
+    const captureCount = inventory.length;
+    const newCoins = userData.coins + totalValue;
+
+    // Update state: add coins and clear inventory
+    saveUserData({
+      coins: newCoins,
+      inventory: [], // Clear inventory after selling
+    });
+
+    showMessage(`💰 Vendido com sucesso! ${captureCount} itens (peixes/lixos) por ${totalValue} Moedas!`);
+  };
+
+
+  if (!isAuthReady) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <div className="text-2xl animate-pulse flex items-center">
+          <Loader className="w-6 h-6 mr-3 animate-spin text-teal-400" /> Carregando Dados da Ravena...
+        </div>
+      </div>
+    );
+  }
+
+  // Helper for equipped status
+  const isRodEquipped = userData.purchasedItems.some(p => p.id === 'rod_fiber');
+  const isHatEquipped = userData.purchasedItems.some(p => p.id === 'hat_lucky');
+  
+  // --- COMPONENTS FOR TABS ---
+
+  // Componente 1: Pesca (Fishing)
+  const FishingTab = () => (
+    <div className="p-6 bg-gray-700 rounded-xl shadow-2xl space-y-6">
+      <div className="bg-gray-800 p-4 rounded-lg shadow-inner">
+        {/* Status do Jogador: Alterado conforme solicitado */}
+        <h3 className="text-xl font-bold text-teal-400 mb-2 flex items-center"><User className="w-5 h-5 mr-2" /> Status do Jogador</h3>
+        <div className="text-sm font-medium text-gray-300 mb-4">
+            ID do Jogador: <span className="text-yellow-300 font-bold break-all">{userId}</span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 text-lg font-medium">
+            <div>Nível: <span className="text-yellow-400">{level}</span></div>
+            <div>Moedas: <span className="text-green-400">{userData.coins}</span></div>
+            <div className="col-span-2">
+                Iscas: <span className="text-orange-400">{baitCount}</span> / {maxBait}
+                <span className="ml-4 text-sm text-gray-400">({timeRemainingText})</span>
+            </div>
+        </div>
+      </div>
+
+      {/* Barra de XP */}
+      <div className="bg-gray-800 p-4 rounded-lg shadow-inner">
+        <h3 className="text-xl font-bold text-teal-400 mb-3">Progresso de Nível</h3>
+        <div className="mb-2 text-sm font-medium flex justify-between">
+            <span>XP Atual: {userData.currentXp} / {xpNeeded}</span>
+            <span className="text-yellow-300">Próximo Nível: {level + 1}</span>
+        </div>
+        <div className="w-full bg-gray-600 rounded-full h-3">
+            <div 
+                className="bg-teal-500 h-3 rounded-full transition-all duration-500" 
+                style={{ width: `${Math.min(100, currentXpPercent)}%` }}
+            ></div>
+        </div>
+        <div className="text-xs mt-2 text-gray-400">
+            {level < 30 && `(Nível 30: +3 Iscas Max. / Desbloqueia Trocas)`}
+            {level >= 30 && level < 50 && `(Nível 50: Cooldown de Isca cai para 30min)`}
+        </div>
+      </div>
+      
+      {/* Botão de Ação - Alterado para "Lançar Linha de Pesca" */}
+      <button
+        onClick={handleFish}
+        disabled={baitCount <= 0 || isFishing}
+        className={`w-full py-5 text-2xl font-extrabold rounded-xl shadow-xl transition-all transform hover:scale-[1.01] ${
+          baitCount > 0 && !isFishing
+            ? 'bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-gray-900'
+            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+        }`}
+      >
+        {isFishing ? <span className='flex items-center justify-center'><Loader className="w-6 h-6 mr-3 animate-spin" /> Pescando... (3s)</span> : 'Lançar Linha de Pesca!'}
+      </button>
+    </div>
+  );
+
+  // Componente 2: Inventário (Inventory)
+  const InventoryTab = () => (
+    <div className="p-6 bg-gray-700 rounded-xl shadow-2xl space-y-6">
+      
+      {/* Equipamentos e Buffs */}
+      <div className="bg-gray-800 p-4 rounded-lg shadow-inner">
+        <h3 className="text-xl font-bold text-teal-300 mb-3 flex items-center"><Zap className="w-5 h-5 mr-2" /> Buffs Permanentes</h3>
+        <div className="flex flex-col space-y-2 text-sm">
+            <span className={isRodEquipped ? 'text-green-400' : 'text-gray-400'}>
+                {isRodEquipped ? '✅ Vara de Fibra Reforçada (Bônus Raro/Épico)' : '❌ Vara Básica'}
+            </span>
+            <span className={isHatEquipped ? 'text-green-400' : 'text-gray-400'}>
+                {isHatEquipped ? '👑 Chapéu da Sorte (Sorte Geral +5%)' : '❌ Sem Chapéu de Sorte'}
+            </span>
+            <span className={userData.premiumBaitUses > 0 ? 'text-purple-400 font-semibold' : 'text-gray-400'}>
+                ✨ Isca Premium de Brilho: {userData.premiumBaitUses} Usos Restantes
+            </span>
+        </div>
+      </div>
+
+      {/* Histórico de Capturas */}
+      <div className="bg-gray-800 p-4 rounded-lg shadow-inner">
+        <h3 className="text-xl font-bold text-teal-300 mb-3">Histórico de Capturas ({userData.inventory.length})</h3>
+        <div className="max-h-80 overflow-y-auto space-y-1">
+            {userData.inventory.length === 0 ? (
+                <p className="text-gray-400 text-center py-4">Nenhuma captura registrada ainda. Hora de pescar!</p>
+            ) : (
+                userData.inventory.map((item, index) => (
+                    <div key={item.caughtAt + index} className="p-2 rounded-md flex justify-between items-center text-sm bg-gray-700 hover:bg-gray-600">
+                        <span className={`font-semibold ${item.color}`}>{item.name}</span>
+                        <span className="text-gray-300">{item.weight} kg</span>
+                        <span className="text-green-400">V: {item.value} Moedas</span>
+                    </div>
+                ))
+            )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Componente 3: Loja (Shop)
+  const ShopTab = () => (
+    <div className="p-6 bg-gray-700 rounded-xl shadow-2xl">
+      <h2 className="text-2xl font-bold text-indigo-400 mb-4 text-center">Loja de Pesca</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {SHOP_ITEMS.map(item => {
+          const isOwned = item.type !== 'consumable' && userData.purchasedItems.some(p => p.id === item.id);
+          const canAfford = userData.coins >= item.cost;
+          
+          return (
+            <div key={item.id} className="bg-gray-800 p-4 rounded-lg flex flex-col justify-between border-2 border-indigo-500/50">
+              <div>
+                  <h3 className="text-xl font-bold text-white mb-1">{item.name}</h3>
+                  <p className="text-sm text-gray-400 mb-3">{item.description}</p>
+              </div>
+              <div className="flex flex-col space-y-2">
+                  <p className="text-lg font-semibold text-yellow-500">
+                      Custo: {item.cost} Moedas
+                  </p>
+                  <button
+                    onClick={() => handlePurchase(item)}
+                    disabled={isOwned || !canAfford}
+                    className={`w-full py-2 font-semibold rounded-lg transition-all ${
+                      isOwned
+                        ? 'bg-green-600 cursor-not-allowed'
+                        : canAfford
+                          ? 'bg-indigo-500 hover:bg-indigo-600'
+                          : 'bg-red-500/50 cursor-not-allowed'
+                    }`}
+                  >
+                    {isOwned ? 'Possuído' : canAfford ? `Comprar` : 'Custo Alto!'}
+                  </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-8 bg-gray-800 p-4 rounded-lg shadow-inner">
+        <h3 className="text-xl font-bold text-teal-300 mb-3">Tabela de Raridades (Peixes e Lixo)</h3>
+        <div className="space-y-1">
+            {/* Exibe apenas as categorias de raridade e sua chance total base */}
+            <div className={`flex justify-between text-sm text-zinc-600`}>
+                <span className="font-semibold">Lixo (30 Itens)</span>
+                <span>Chance Base: 50.0%</span>
+            </div>
+            <div className={`flex justify-between text-sm text-gray-400`}>
+                <span className="font-semibold">Comum (10 Peixes)</span>
+                <span>Chance Base: 30.0%</span>
+            </div>
+            <div className={`flex justify-between text-sm text-green-500`}>
+                <span className="font-semibold">Incomum (8 Peixes)</span>
+                <span>Chance Base: 12.0%</span>
+            </div>
+            <div className={`flex justify-between text-sm text-blue-500`}>
+                <span className="font-semibold">Raro (6 Peixes)</span>
+                <span>Chance Base: 5.0%</span>
+            </div>
+            <div className={`flex justify-between text-sm text-purple-500`}>
+                <span className="font-semibold">Épico (4 Peixes)</span>
+                <span>Chance Base: 2.5%</span>
+            </div>
+            <div className={`flex justify-between text-sm text-yellow-400`}>
+                <span className="font-semibold">Lendário (2 Peixes)</span>
+                <span>Chance Base: 0.5%</span>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+  
+  // Componente 4: Vender / Trocar
+  const SellTradeTab = () => {
+    const isTradeUnlocked = level >= 30; // Nível 30 para Desbloquear
+    
+    // Calculate total value and count for display
+    const totalItemCount = inventory.length;
+    const totalSellValue = inventory.reduce((sum, capture) => sum + capture.value, 0);
+
+    return (
+      <div className="p-6 bg-gray-700 rounded-xl shadow-2xl space-y-6">
+        <h2 className="text-2xl font-bold text-green-400 mb-4 text-center flex items-center justify-center">
+            <DollarSign className="w-6 h-6 mr-2" /> Área de Venda e Troca
+        </h2>
+
+        {/* Resumo da Venda */}
+        <div className="bg-gray-800 p-6 rounded-lg shadow-inner text-center">
+          <p className="text-xl font-medium text-gray-300 mb-2">
+            Itens (Peixes/Lixos) no Inventário: <span className="text-yellow-400 font-bold">{totalItemCount}</span>
+          </p>
+          <p className="text-2xl font-extrabold text-green-500 mb-4">
+            Valor Total de Venda: {totalSellValue} Moedas
+          </p>
+          
+          <button
+            onClick={handleSellAllFish}
+            disabled={totalItemCount === 0}
+            className={`w-full py-3 text-xl font-bold rounded-lg transition-all transform hover:scale-[1.02] ${
+              totalItemCount > 0
+                ? 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-gray-900'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Vender Todos os Itens
+          </button>
+          
+          <p className="text-xs mt-3 text-gray-400">
+              Esta ação vende todo o seu inventário de capturas de uma só vez e o limpa.
+          </p>
+        </div>
+        
+        {/* Bloco de Trocas (Requer Nível 30) */}
+        <div className="bg-gray-800 p-6 rounded-lg shadow-inner">
+            <h3 className="text-xl font-bold text-indigo-400 mb-3">Trocas de Item</h3>
+            
+            {!isTradeUnlocked ? (
+                 <div className="p-4 border border-red-500/50 bg-red-900/20 rounded-lg text-center text-red-400 font-semibold">
+                    🚫 Requer Nível 30 para Desbloquear o Mercado de Trocas! (Seu Nível Atual: {level})
+                 </div>
+            ) : (
+                <>
+                    <p className="text-gray-400">
+                        Esta seção será usada para trocar peixes raros por equipamentos especiais ou itens de coleção.
+                    </p>
+                    <div className="mt-4 p-4 border border-indigo-500/30 rounded-lg text-center text-gray-500">
+                        *Requerimentos de Troca, como '10 Bacalhaus Incomuns', aparecerão aqui.*
+                    </div>
+                </>
+            )}
+
+        </div>
+
+      </div>
+    );
+  };
+
+  
+  // --- Tab Navigation Setup ---
+  const tabs = [
+    { id: 'fishing', label: 'Pesca', icon: Fish, component: FishingTab },
+    { id: 'inventory', label: 'Inventário', icon: User, component: InventoryTab },
+    { id: 'shop', label: 'Loja', icon: ShoppingBag, component: ShopTab },
+    { id: 'selltrade', label: 'Vender / Trocar', icon: DollarSign, component: SellTradeTab },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'fishing':
+        return <FishingTab />;
+      case 'inventory':
+        return <InventoryTab />;
+      case 'shop':
+        return <ShopTab />;
+      case 'selltrade':
+        return <SellTradeTab />;
+      default:
+        return <FishingTab />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white font-sans p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-extrabold text-teal-400 mb-6 text-center shadow-lg">
+          🎣 PESCARIA DA RAVENA
+        </h1>
+
+        {/* Feedback Message */}
+        {message && (
+          <div className="bg-yellow-600/90 text-white p-3 rounded-lg mb-4 text-center font-semibold transition-opacity duration-300">
+            {message}
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="flex border-b-2 border-gray-700 mb-6 overflow-x-auto whitespace-nowrap">
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.id;
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  flex items-center px-4 py-3 text-lg font-medium transition-colors duration-200 
+                  ${isActive 
+                    ? 'border-b-4 border-indigo-500 text-indigo-400 bg-gray-700/50' 
+                    : 'border-b-4 border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
+                  }
+                  rounded-t-lg
+                `}
+              >
+                <IconComponent className="w-5 h-5 mr-2" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        <main className="pb-8">
+          {renderContent()}
+        </main>
+        
+        {/* User ID (Mandatory for multi-user apps) */}
+        <div className="mt-4 text-xs text-gray-600 break-words text-center">
+            ID de Referência: {userId}
+        </div>
+        
+      </div>
+    </div>
+  );
+};
+
+export default App;
