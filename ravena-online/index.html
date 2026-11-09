@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e141e" />
+  <title>Ravena Online — Protótipo de Mundo Aberto</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="world" aria-label="Mundo 3D de Ravena Online"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+  <div id="hud" class="hidden">
+    <header class="topbar">
+      <div class="brand"><span class="brand-rune">✦</span> RAVENA <span class="brand-weak">ONLINE</span></div>
+      <div class="server"><span class="green-dot"></span> PRÉ-ALFA · MODO SOLO</div>
+      <div class="zone" id="zone">Capital de Azarath</div>
+    </header>
+    <aside class="quests glass">
+      <div class="panel-title">✧ O DESPERTAR</div>
+      <div class="quest-title" id="quest-title">O primeiro passo</div>
+      <div class="quest-description" id="quest-description">Clique no chão para explorar a cidade.</div>
+      <div class="divider"></div>
+      <div class="legend"><span>●</span> Fale com os NPCs usando <kbd>E</kbd></div>
+      <div class="legend"><span>●</span> Caminhe até a região da pescaria</div>
+      <div class="legend"><span>●</span> Explore a montanha da forja</div>
+    </aside>
+    <aside class="minimap glass">
+      <div class="map-title">MAPA DE AZARATH</div>
+      <div class="map-field">
+        <span class="map-mark map-town" title="Capital">♜</span>
+        <span class="map-mark map-forest" title="Floresta">♣</span>
+        <span class="map-mark map-lake" title="Lago">≈</span>
+        <span class="map-mark map-forge" title="Forja">⚒</span>
+        <div id="map-player" title="Você">◆</div>
+      </div>
+      <div class="map-hint">Uma região conectada, sem telas de carregamento.</div>
+    </aside>
+    <div class="interaction glass hidden" id="interaction">Pressione <kbd>E</kbd> para conversar</div>
+    <div class="toast hidden" id="toast" role="status"></div>
+    <section class="stats glass">
+      <div class="portrait">✦</div>
+      <div class="stat-lines"><div class="player-line"><strong id="player-name">Aventureiro</strong><span id="player-class">Mago · Nível 1</span></div>
+        <div class="stat-bar health"><div id="hp-fill"></div><span>VIDA <b id="hp-text">100 / 100</b></span></div>
+        <div class="stat-bar mana"><div id="mp-fill"></div><span>ENERGIA <b id="mp-text">100 / 100</b></span></div>
+        <div class="stat-bar exp"><div id="xp-fill"></div><span>EXP <b id="xp-text">0 / 100</b></span></div>
+      </div>
+    </section>
+    <div class="hotbar glass"><div class="skill"><span>⚔</span><small>1</small></div><div class="skill"><span>✦</span><small>2</small></div><div class="skill"><span>⛨</span><small>3</small></div><div class="skill"><span>⚒</span><small>4</small></div><div class="skill"><span>🎣</span><small>5</small></div><div class="skill disabled"><span>⊕</span><small>6</small></div></div>
+    <div class="actions glass"><button id="button-profile">☷ <span>Personagem</span></button><button id="button-help">? <span>Controles</span></button></div>
+    <div class="mobile-hint">Toque no terreno para andar • Arraste para explorar</div>
+  </div>
+  <div class="overlay" id="creation">
+    <div class="creation-backdrop"></div>
+    <div class="creation-shell">
+      <div class="creation-intro"><div class="eyebrow">UM NOVO MUNDO ESPERA POR VOCÊ</div><h1>Ravena <i>Online</i></h1><p>O Despertar de Azarath</p><div class="intro-rule"></div><p class="story">Construa sua lenda. Domine a magia, a espada ou a forja. Explore terras esquecidas, faça aliados e descubra os segredos do Lago da Mãe das Águas.</p><div class="feature-pill">MUNDO ABERTO 3D · PRÉ-ALFA SOLO</div></div>
+      <div class="creation-panel glass">
+        <div class="eyebrow">SUA JORNADA COMEÇA AQUI</div><h2>Criar personagem</h2>
+        <label for="name">Nome do aventureiro</label><input id="name" maxlength="16" placeholder="Seu nome (3 a 16 letras)" autocomplete="off" value="cape_lossi" />
+        <label>Escolha seu caminho</label>
+        <div class="classes">
+          <button class="class selected" data-class="mago"><span>✧</span><b>Mago</b><small>Magia elemental</small></button>
+          <button class="class" data-class="espadachim"><span>⚔</span><b>Espadachim</b><small>Combate e defesa</small></button>
+          <button class="class" data-class="forjador"><span>⚒</span><b>Forjador</b><small>Ofícios e armas</small></button>
+        </div>
+        <label>Aparência</label><div class="appearance"><button class="tone selected" data-tone="0" aria-label="Tom de pele 1" style="--swatch:#f4c9a0"></button><button class="tone" data-tone="1" aria-label="Tom de pele 2" style="--swatch:#b98256"></button><button class="tone" data-tone="2" aria-label="Tom de pele 3" style="--swatch:#71442f"></button><div class="app-sep"></div><button class="hair selected" data-hair="0" aria-label="Cabelo vinho" style="--swatch:#6f304b"></button><button class="hair" data-hair="1" aria-label="Cabelo castanho" style="--swatch:#4d3023"></button><button class="hair" data-hair="2" aria-label="Cabelo loiro" style="--swatch:#d8ad57"></button></div>
+        <button id="start" class="start">ENTRAR EM AZARATH <span>↗</span></button><div id="create-error" aria-live="polite"></div>
+        <p class="legal">Protótipo offline: o personagem é salvo apenas neste navegador. Multiplayer, comércio e contas serão desenvolvidos no servidor.</p>
+      </div>
+    </div>
+  </div>
+  <div id="dialogue" class="dialogue glass hidden"><strong id="npc-name"></strong><p id="npc-text"></p><button id="dialogue-close">Continuar ↗</button></div>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
