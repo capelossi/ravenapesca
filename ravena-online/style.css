@@ -74,3 +74,47 @@
   .settings-header h2{font-size:17px}
   .combat-target{top:53px;left:10px;right:auto;transform:none;min-width:160px;max-width:50vw;font-size:10px;padding:6px 9px}
 }
+
+/* FASE 1 — Atlas macro: layout de mapa explorável, rascunho e locais futuros. */
+.world-map-panel{position:absolute;z-index:16;left:50%;top:68px;bottom:84px;transform:translateX(-50%);width:min(1020px,calc(100vw - 42px));padding:18px;overflow-y:auto;pointer-events:auto;background:rgba(12,19,29,.975);border-color:#947953;box-shadow:0 25px 80px #000b}
+.world-map-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 0 14px;border-bottom:1px solid #5d594e}
+.world-map-header h2{font:normal 29px Georgia,serif;color:#f0d29d;margin:4px 0}
+.world-map-header p{font:12px/1.5 system-ui,sans-serif;color:#bac1bd;margin:0}
+.map-kicker{font:bold 10px system-ui,sans-serif;letter-spacing:2.6px;color:#cfa56a}
+#world-map-close{background:#333444;color:#f8d79f;border:1px solid #94734b;border-radius:7px;width:39px;height:39px;font-size:26px;flex:none}
+.world-map-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,.7fr);gap:18px;margin-top:15px;align-items:start}
+.atlas-canvas-wrap{min-width:0;position:relative;padding:6px;background:#111d26;border:1px solid #656354;border-radius:11px;box-shadow:inset 0 0 32px #0008}
+.atlas-svg-host{position:relative;line-height:0}
+.atlas-svg-host svg{display:block;max-width:100%;width:100%;height:auto;border-radius:8px}
+.atlas-svg-host svg [role="button"]:focus-visible{outline:0;filter:drop-shadow(0 0 6px #fff4bc)}
+.atlas-compass{position:absolute;right:11px;top:10px;padding:4px 8px;color:#f6dc9b;background:#14222bcc;font:11px system-ui,sans-serif;border:1px solid #69756f;border-radius:5px;line-height:1.3}
+.atlas-legend{color:#c9c3b2;font:11px/1.5 system-ui,sans-serif;padding:10px 6px 5px}
+.atlas-safe-dot{color:#dec28a}
+.atlas-sidebar{padding:5px 1px 9px;min-width:0}
+.atlas-sidebar-label{font:bold 10px system-ui,sans-serif;color:#cca56d;letter-spacing:1.6px}
+.atlas-sidebar h3{font:normal 23px Georgia,serif;color:#f0d29d;margin:7px 0 9px}
+#atlas-place-description{font:13px/1.6 system-ui,sans-serif;color:#d0d6d0;min-height:58px}
+.atlas-place-status{font:11px system-ui,sans-serif;color:#9eb6a0;margin:12px 0}
+#atlas-navigate{width:100%;background:linear-gradient(90deg,#b5854e,#f3d09a);border:1px solid #ffe2ac;border-radius:7px;color:#302217;font:bold 12px system-ui,sans-serif;padding:12px 9px;min-height:43px}
+#atlas-navigate:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(1)}
+.atlas-sidebar-divider{height:1px;background:#615c4c;margin:17px 0}
+.atlas-place-list{display:flex;flex-direction:column;gap:4px;max-height:225px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#92754d transparent}
+.atlas-poi-button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#1b2731;border:1px solid transparent;color:#ddd2c0;font:12px system-ui,sans-serif;padding:8px;border-radius:6px;min-height:36px}
+.atlas-poi-button:hover,.atlas-poi-button.selected{background:#293340;border-color:#bd9d6d;color:#fff1c5}
+.atlas-poi-icon{font-size:12px;color:#dbb680}
+.atlas-poi-text{flex:1}
+.atlas-poi-tag{font:10px system-ui,sans-serif;color:#96adae;white-space:nowrap}
+.atlas-footnote{font:11px/1.6 system-ui,sans-serif;color:#9aa5a3;margin:14px 0 0}
+@media(max-width:750px){
+ .world-map-panel{top:55px;bottom:8px;left:4px;right:4px;width:auto;transform:none;padding:12px;border-radius:10px}
+ .world-map-header h2{font-size:23px}
+ .world-map-header p{font-size:11px}
+ .world-map-body{grid-template-columns:minmax(0,1fr);gap:11px;margin-top:10px}
+ .atlas-canvas-wrap{max-width:min(100%,370px);width:100%;margin:0 auto}
+ .atlas-sidebar{padding:0 2px 12px}
+ .atlas-sidebar h3{font-size:20px}
+ #atlas-place-description{min-height:0;margin:3px 0}
+ .atlas-place-list{max-height:165px}
+ .atlas-poi-button{min-height:42px}
+ .atlas-legend{font-size:10px}
+}
