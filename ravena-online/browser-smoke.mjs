@@ -78,6 +78,36 @@ try{
     await page.locator("#atlas-navigate").click();
     await page.locator("#world-map-panel.hidden").waitFor({state:"hidden",timeout:10000});
     assert.match(await page.locator("#toast").innerText(),/Caminhando até.*Praça das Redes/);
+    await page.waitForFunction(()=>{
+      const p=window.RavenaAlphaDebug?.snapshot();
+      return p && Math.hypot(p.x-35,p.z+14)<2.1;
+    },null,{timeout:20000});
+    assert.equal((await page.evaluate(()=>window.RavenaAlphaDebug.snapshot())).blockedAtHero,false);
+    // Follow the coastal street and walk onto the real pier without entering water.
+    await page.locator("#button-map").click();
+    await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
+    for(const id of ["prefeitura-mares","pousada-vila","armazem-sal",
+      "oficina-naval","casas-pescadores"]){
+      await page.locator('[data-place="'+id+'"]').click();
+      assert.equal(await page.locator("#atlas-navigate").isEnabled(),true,
+        "Coastal landmark must have a pedestrian approach: "+id);
+    }
+    await page.locator('[data-place="santuario-aguas"]').click();
+    assert.equal(await page.locator("#atlas-navigate").isDisabled(),true,
+      "Unbuilt shrine must stay disabled in the Atlas");
+    await page.locator('[data-place="cais-mae-aguas"]').click();
+    await page.locator("#atlas-navigate").click();
+    await page.waitForFunction(()=>{
+      const p=window.RavenaAlphaDebug?.snapshot();
+      return p && Math.hypot(p.x-33,p.z-1)<1.8;
+    },null,{timeout:17000});
+    assert.equal((await page.evaluate(()=>window.RavenaAlphaDebug.snapshot())).blockedAtHero,false,
+      "Pier must not collide with water");
+    await page.locator('[data-action="fish"]').click();
+    await page.waitForFunction(()=>{
+      const save=JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null");
+      return save && (save.totalFish||0)>=1;
+    },null,{timeout:8500});
     await page.locator("#button-map").click();
     await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
     await page.locator("#world-map-close").click();
@@ -86,7 +116,7 @@ try{
     assert.equal(saved?.config?.name,"Testador");
     assert.ok(saved?.level>=1);
     assert.equal(errors.length,0,profile.name+": browser errors: "+errors.join(" | "));
-    console.log("PASS "+profile.name+" startup, capital movement, atlas routes, HUD, quality, inventory, journal, attack and save");
+    console.log("PASS "+profile.name+" capital-to-village-to-pier walk, fishing, coast landmarks, inventory and mobile HUD");
     total++;
     await context.close();
   }
