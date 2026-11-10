@@ -27,7 +27,7 @@
       <div class="legend"><span>●</span> Revele o mistério do farol e da forja</div>
     </aside>
     <aside class="minimap glass">
-      <div class="map-title">REINO DE AZARATH</div>
+      <div class="map-title">AZARATH <button id="mini-map-open" type="button" aria-label="Abrir mapa completo" title="Abrir mapa completo">⤢</button></div>
       <div class="map-field">
         <span class="map-mark map-town" title="Capital">♜</span>
         <span class="map-mark map-forest" title="Floresta">♣</span>
@@ -42,7 +42,7 @@
       <div class="target-bar"><div id="target-fill" class="target-fill"></div></div>
       <span id="target-hp">0 / 0</span>
     </div>
-    <div class="interaction glass hidden" id="interaction">Pressione <kbd>E</kbd> para conversar</div>
+    <button class="interaction glass hidden" id="interaction" type="button" aria-label="Conversar com personagem próximo">Conversar com NPC <kbd>E</kbd></button>
     <div class="toast hidden" id="toast" role="status"></div>
     <section class="stats glass">
       <div class="portrait">✦</div>
@@ -105,7 +105,7 @@
       <div id="inventory-items" class="inventory-items"></div>
       <div class="craft-tip">⚒ Colete minério na montanha e forje na oficina. 🎣 Pesque no píer do lago.</div>
     </section>
-    <div class="mobile-hint">Toque no terreno para andar • 1: combate · 4: forja · 5: pesca</div>
+    <div class="mobile-hint">Toque no chão para caminhar • Toque em Conversar para falar</div>
   </div>
   <div class="overlay" id="creation">
     <div class="creation-backdrop"></div>
