@@ -2,6 +2,7 @@
 // Run with: npm install --no-save playwright && node ravena-online/browser-smoke.mjs
 import assert from "node:assert/strict";
 import {chromium} from "playwright";
+import { resolve } from "node:path";
 
 const URL=process.env.RAVENA_TEST_URL||"http://127.0.0.1:8000/ravena-online/";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
@@ -17,6 +18,11 @@ try{
       isMobile:profile.isMobile,hasTouch:profile.hasTouch
     });
     const page=await context.newPage(),errors=[];
+    // O smoke testa a lógica sem depender da disponibilidade da CDN externa:
+    // o aplicativo publicado continua usando Babylon.js via CDN.
+    await page.route("https://cdn.babylonjs.com/babylon.js",route=>
+      route.fulfill({path:resolve("node_modules/babylonjs/babylon.js"),
+        contentType:"application/javascript"}));
     page.on("pageerror",error=>errors.push(error.message));
     page.on("console",message=>{if(message.type()==="error")errors.push("Console: "+message.text());});
     const debugUrl=URL+(URL.includes("?")?"&":"?")+"debug=1";
