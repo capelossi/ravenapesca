@@ -91,6 +91,20 @@
   let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
   let totalFish=0,totalOre=0,targetUntil=0,lastEnemyHit=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
+  // Leitura diagnóstica opt-in apenas na pré-alfa, para validar rotas de ponta a ponta.
+  // Não oferece teleporte, alterações de XP ou ferramentas de administração.
+  if(new URLSearchParams(window.location.search).get("debug")==="1"){
+    Object.defineProperty(window,"RavenaAlphaDebug",{
+      value:Object.freeze({
+        snapshot:()=>({
+          x:hero?.position.x??null,z:hero?.position.z??null,
+          zone:currentZone,routePoints:path.length,
+          blockedAtHero:hero?blocked(hero.position.x,hero.position.z,.12):null
+        })
+      }),
+      writable:false,configurable:false
+    });
+  }
   // O Atlas usa IDs e pontos de interesse independentes do motor de renderização.
   const atlas=globalThis.RavenaMapUI.create({
     onNavigate:place=>{
