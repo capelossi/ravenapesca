@@ -211,11 +211,14 @@
     roof(x,z,w,d,h,roofmat);
   }
   function road(x,z,w,d){const r=box("road",[x,.022,z],[w,.04,d],m.road);r.receiveShadows=true;}
+  const cobbleBatches={stone:[],edge:[]};
   function scatterRoad(x,z,w,d,count){
     for(let i=0;i<count;i++){
-      const px=x+(rnd()-.5)*w, pz=z+(rnd()-.5)*d;
-      const cobble=box("cobble",[px,.055,pz],[.45+rnd()*.8,.06,.4+rnd()*.6],rnd()>.5?m.road:m.roadEdge);
+      const px=x+(rnd()-.5)*w,pz=z+(rnd()-.5)*d;
+      const edge=rnd()>.5;
+      const cobble=box("cobble",[px,.055,pz],[.45+rnd()*.8,.06,.4+rnd()*.6],edge?m.roadEdge:m.road);
       cobble.rotation.y=rnd()*.6;
+      cobbleBatches[edge?"edge":"stone"].push(cobble);
     }
   }
   road(0,0,16,42);
@@ -246,6 +249,20 @@
   road(33,15,8,28);
   scatterRoad(35,-11,8,24,85);
   scatterRoad(38,-21,26,7,75);
+  // Combina centenas de pedras pequenas em duas malhas estáticas.
+  // Se o merge não for suportado, preservamos a geometria sem quebrar o mapa.
+  for(const [type,meshes] of Object.entries(cobbleBatches)){
+    if(meshes.length<2)continue;
+    try{
+      const merged=B.Mesh.MergeMeshes(meshes,false,true);
+      if(merged){
+        merged.name="cobblestones "+type;
+        merged.material=type==="stone"?m.road:m.roadEdge;
+        merged.receiveShadows=true;merged.isPickable=false;
+        for(const mesh of meshes)mesh.dispose();
+      }
+    }catch(error){console.warn("Otimização de calçamento desativada:",error.message);}
+  }
   // Town is central, forest to west, lake to east, forge to south.
   // Três casas genéricas foram substituídas por edifícios nomeados da Capital.
   // Mantemos os bairros residenciais menores até o refinamento de interiores.
