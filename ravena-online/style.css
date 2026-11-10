@@ -47,3 +47,8 @@
 .chronicle-step.done{color:#8fc79e}.chronicle-step.active{color:#f2d18e;font-weight:bold}.chronicle-step.future{color:#687a7e}
 .chronicle-future{font:12px/1.6 system-ui,sans-serif;color:#b6a382;padding:3px 0}
 @media(max-width:750px){.chronicle-panel{top:58px;right:7px;bottom:125px;width:min(350px,calc(100vw - 14px));padding:13px}.chronicle-header h2{font-size:21px}}
+
+/* Localização dos principais centros no mapa simplificado. */
+.map-lake{left:66%;top:44%;color:#9cdeec}
+.map-forge{left:51%;top:76%}
+.map-forest{left:26%;top:29%}
