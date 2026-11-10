@@ -66,6 +66,28 @@
       }
     }
   }
+  // Textura leve de água: sem shader complexo nem vídeo, com ondas sutis.
+  function waterSurface(ctx,size,shallow=false){
+    ctx.fillStyle=shallow?"#397985":"#214c63";
+    ctx.fillRect(0,0,size,size);
+    for(let i=0;i<640;i++){
+      const x=rnd()*size,y=rnd()*size,span=4+rnd()*23;
+      ctx.beginPath();
+      ctx.strokeStyle=shallow?
+        ["rgba(163,205,194,.16)","rgba(25,76,99,.19)","rgba(121,187,182,.1)"][Math.floor(rnd()*3)]:
+        ["rgba(113,173,178,.15)","rgba(13,53,76,.2)","rgba(176,191,174,.09)"][Math.floor(rnd()*3)];
+      ctx.lineWidth=.7+rnd()*1.15;
+      ctx.moveTo(x,y);
+      ctx.quadraticCurveTo(x+span*.55,y-1.3-rnd()*1.3,x+span,y);
+      ctx.stroke();
+    }
+    // Pontos de luz bem espaçados para não virar uma piscina fluorescente.
+    for(let i=0;i<50;i++){
+      const x=rnd()*size,y=rnd()*size;
+      ctx.fillStyle="rgba(200,225,204,.11)";
+      ctx.fillRect(x,y,3+rnd()*12,.7);
+    }
+  }
   function attach(B,scene,material,name,size,draw,u,v){
     if(!material)return;
     material.diffuseTexture=makeTexture(B,scene,name,size,draw,u,v);
@@ -80,6 +102,10 @@
     attach(B,scene,materials.road,"calçamento de Azarath",size,cobble,1,1);
     attach(B,scene,materials.roof,"telhas de cerâmica",size,(ctx,s)=>shingle(ctx,s,false),1,1);
     attach(B,scene,materials.roofDark,"telhas azul ardósia",size,(ctx,s)=>shingle(ctx,s,true),1,1);
+    attach(B,scene,materials.water,"água profunda",size,(ctx,s)=>waterSurface(ctx,s,false),1,1);
+    attach(B,scene,materials.water2,"águas rasas",size,(ctx,s)=>waterSurface(ctx,s,true),1,1);
+    materials.water.specularColor=new B.Color3(.25,.35,.37);
+    materials.water2.specularColor=new B.Color3(.2,.3,.31);
     const groundTexture=materials.ground?.diffuseTexture;
     if(groundTexture)groundTexture.hasAlpha=false;
     let glow=null,quality=mode,phase=0;
