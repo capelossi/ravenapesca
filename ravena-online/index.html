@@ -46,9 +46,21 @@
         <div class="stat-bar exp"><div id="xp-fill"></div><span>EXP <b id="xp-text">0 / 100</b></span></div>
       </div>
     </section>
-    <div class="hotbar glass"><div class="skill"><span>⚔</span><small>1</small></div><div class="skill"><span>✦</span><small>2</small></div><div class="skill"><span>⛨</span><small>3</small></div><div class="skill"><span>⚒</span><small>4</small></div><div class="skill"><span>🎣</span><small>5</small></div><div class="skill disabled"><span>⊕</span><small>6</small></div></div>
-    <div class="actions glass"><button id="button-profile">☷ <span>Personagem</span></button><button id="button-help">? <span>Controles</span></button></div>
-    <div class="mobile-hint">Toque no terreno para andar • Arraste para explorar</div>
+    <nav class="hotbar glass" aria-label="Ações do jogador">
+      <button class="skill" data-action="attack" title="Atacar golem de treino (1)"><span>⚔</span><small>1</small></button>
+      <button class="skill" data-action="heal" title="Recuperação de energia (2)"><span>✦</span><small>2</small></button>
+      <button class="skill" data-action="inventory" title="Abrir mochila (3)"><span>▣</span><small>3</small></button>
+      <button class="skill" data-action="forge" title="Minerar ou forjar perto da oficina (4)"><span>⚒</span><small>4</small></button>
+      <button class="skill" data-action="fish" title="Pescar perto do píer (5)"><span>🎣</span><small>5</small></button>
+    </nav>
+    <div class="actions glass"><button id="button-inventory" title="Mochila">▣ <span>Mochila</span></button><button id="button-profile" title="Ficha do personagem">☷ <span>Personagem</span></button><button id="button-help" title="Controles">? <span>Controles</span></button></div>
+    <section id="inventory-panel" class="inventory-panel glass hidden" aria-label="Mochila de aventureiro">
+      <div class="inventory-header"><h2>✦ Mochila do aventureiro</h2><button id="inventory-close" aria-label="Fechar mochila">×</button></div>
+      <p class="inventory-subtitle">Recursos coletados permanecem neste navegador.</p>
+      <div id="inventory-items" class="inventory-items"></div>
+      <div class="craft-tip">⚒ Colete minério na montanha e forje na oficina. 🎣 Pesque no píer do lago.</div>
+    </section>
+    <div class="mobile-hint">Toque no terreno para andar • 1: combate · 4: forja · 5: pesca</div>
   </div>
   <div class="overlay" id="creation">
     <div class="creation-backdrop"></div>
