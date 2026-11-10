@@ -54,6 +54,14 @@ globalThis.RavenaWorldData = Object.freeze({
       story:"Sou Elyra, da guarda da Capital. Recebemos notícia de uma luz impossível vinda da Vila das Marés. Siga a Estrada das Lanternas para leste e converse com a Prefeita Marina. Ninguém precisa ser pescador para atender ao chamado."
     },
     {
+      id:"mestre-valen", name:"Mestre Valen", x:-10, z:-8, kind:"espadachim",
+      story:"Esta é a Guilda dos Aventureiros de Azarath. Por enquanto, a fachada marca onde teremos contratos, grupos e expedições. Os salões internos serão construídos depois que aprovarmos o mapa da capital."
+    },
+    {
+      id:"dona-bruma", name:"Dona Bruma", x:9, z:-8, kind:"forjador",
+      story:"Bem-vindo à Estalagem Corvo Dourado. Estamos organizando o reino antes de abrir quartos e serviços. Na futura cidade viva, esta será uma parada para viajantes, comerciantes e membros de guildas."
+    },
+    {
       id:"prefeita-marina", name:"Prefeita Marina", x:35, z:-12, kind:"espadachim",
       story:"Bem-vindo à Vila das Marés! Vivemos da pesca, do comércio e das viagens pelo lago, mas temos magos, espadachins e forjadores entre nós. Desde que o farol brilhou sozinho, objetos estranhos aparecem nas redes. Fale com Orien no cais."
     },
