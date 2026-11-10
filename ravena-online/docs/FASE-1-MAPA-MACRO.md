@@ -1,6 +1,6 @@
 # RAVENA ONLINE — Roteiro oficial da Fase 1: Mapa primeiro
 
-**Estado:** Fase 1.1 (macro/greybox) implementada; Fase 1.2 (refino da Capital) em andamento, em branch experimental. Ajustes e validação manual ainda necessários.  
+**Estado:** Fases 1.1 e 1.2 com rascunho modular implementado; **Fase 1.3 (Vila das Marés e lago)** em andamento na branch experimental. Revisão física de caminhos, proporções e desempenho ainda necessária.  
 **Propósito:** construir e aprovar o mundo antes de substituir os personagens provisórios por modelos de produção.  
 **Definição:** a pescaria pertence à **Vila das Marés**, cidade vizinha da Capital de Azarath; não será uma tela ou jogo independente.
 
@@ -73,14 +73,14 @@ A vila é uma **cidade inteira**, não uma área de minigame. Seu lago é um des
 | Mercado do Sal | Peixes, ferramentas, contratos | Bancas de teste |
 | Cais da Mãe das Águas | Pesca, embarcações, embarque | Píer e água de teste |
 | Farol das Marés | Mistério do Véu e arquivos | Torre e NPC |
-| Pousada do Faroleiro | Descanso e socialização | Reservada no atlas; ainda não construída |
+| Pousada do Faroleiro | Descanso e socialização | Fachada e entrada já no greybox; interiores futuros |
 | Oficinas do Porto | Reparos de barcos e fabricação | Planejadas |
 
 **Identidade visual futura:** telhas azul ardósia, madeira salgada, mercado movimentado e reflexos frios no lago. A economia deverá conectar capital e vila, sem obrigar cada jogador a pescar.
 
 ## 5. Trilhas e navegação
 
-O arquivo **`world-layout.js`** contém os IDs das quatro regiões iniciais, quatro caminhos principais/locais e dezessete pontos de interesse. O arquivo **`ui-world-map.js`** desenha o Atlas dentro do jogo. A tecla **M** e o botão **Mapa** abrem a interface; locais greybox podem solicitar rota **a pé, nunca teleporte**. Lugares planejados estão marcados e não oferecem rota.
+O arquivo **`world-layout.js`** contém os IDs das quatro regiões iniciais, quatro caminhos principais/locais e vinte e dois pontos de interesse. O arquivo **`ui-world-map.js`** desenha o Atlas dentro do jogo. A tecla **M** e o botão **Mapa** abrem a interface; locais greybox podem solicitar rota **a pé, nunca teleporte**. Lugares planejados estão marcados e não oferecem rota.
 
 O terreno possui estradas e trilhas provisórias derivadas do manifesto; árvores e rochas são evitadas nas trilhas de acesso. O Portão Sul possui abertura física, em vez de um bloco sólido. A navegação ainda usa grade A* e obstáculos aproximados: **NavMesh, colisões refinadas e QA com percursos longos virão antes de aprovar a fase**.
 
@@ -105,10 +105,17 @@ O terreno possui estradas e trilhas provisórias derivadas do manifesto; árvore
 - [ ] Ajustar fachadas, proporções, câmera, terreno e rotas a partir dos testes em dispositivos reais.
 - [ ] Construir os interiores e serviços apenas depois de aprovar as fachadas e entradas.
 
-### Fase 1.3 — Refinar Vila das Marés e Lago
-- [ ] Separar visualmente praça, mercado, pousada, cais e farol.
-- [ ] Água, margens, barcos e caminhos sem colisões incorretas.
-- [ ] Espaço para futuras missões, mercado e transporte por barco.
+### Fase 1.3 — Refinar Vila das Marés e Lago (em andamento)
+- [x] Arquivos independentes de planta (`village-layout.js`) e geometria (`village-scene.js`).
+- [x] Prefeitura, pousada, armazém, oficina naval e casas dos pescadores com fachadas e acessos sinalizados.
+- [x] Praças, mercado, píer, barcos, farol e paisagismo de teste.
+- [x] Colisão da lagoa separada dos obstáculos em terra, com corredor caminhável sobre o píer.
+- [x] Atlas atualizado com locais construídos e Santuário da Mãe das Águas planejado e desabilitado.
+- [x] Dois NPCs de contexto: Dona Celina e Mestre Naval Taren.
+- [ ] Validar caminhadas completas de capital → vila → píer e entradas de todos os distritos em PC e celular.
+- [ ] Refazer águas e praias com material mais realista, sem adicionar obstáculos invisíveis.
+- [ ] Ajustar a escala, os terrenos, sombras e possíveis gargalos de câmera.
+- [ ] Adicionar interiores, viagens de barco e economia apenas depois de aprovar o mapa.
 
 ### Fase 1.4 — Floresta e Montanhas
 - [ ] Terreno e trilhas com biomas distintos.
@@ -138,4 +145,4 @@ O mapa está suficientemente pronto para seguir aos personagens quando:
 4. Atlas e posições de NPCs não apontam para locais permanentemente bloqueados.
 5. A versão **Leve** mantém o protótipo funcional em celular de teste real e os resultados ficam documentados.
 
-**Observação:** os modelos 3D e os prédios atuais são rascunhos. O Atlas ajuda a aprovar a planta, não significa que cada ambiente já tenha acabamento ou serviços funcionais.
+**Observação:** os modelos 3D e os prédios atuais são rascunhos. O Santuário da Mãe das Águas aparece como ponto futuro e não está jogável. O Atlas ajuda a aprovar a planta, não significa que cada ambiente já tenha acabamento ou serviços funcionais.
