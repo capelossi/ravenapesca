@@ -671,8 +671,11 @@
   }
   function updateQuest(){
     const stage=world.story.stages[quest]||world.story.epilogue;
+    $("quest-chapter").textContent="✧ "+world.story.chapterTitle.toUpperCase();
     $("quest-title").textContent=stage.title;
     $("quest-description").textContent=stage.description;
+    if(!$("chronicle-panel").classList.contains("hidden"))
+      globalThis.RavenaJournal?.render(quest,currentZone);
   }
   function talk(npc){
     if(!npc)return;
@@ -692,7 +695,11 @@
   }
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
-  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · E: conversar · 1: atacar · 2: especial · 3: mochila · 4: forjar/minerar · 5: pescar",7));
+  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · E: conversar · J: crônicas · 1: atacar · 2: especial · 3: mochila · 4: forjar/minerar · 5: pescar",7));
+  $("button-journal").addEventListener("click",()=>{
+    toggleBag(false);
+    globalThis.RavenaJournal?.toggle(quest,currentZone);
+  });
   $("button-profile").addEventListener("click",()=>toast(config.name+" · "+config.kind+" · Nível "+level+" | "+totalFish+" peixes · "+totalOre+" minérios coletados.",5));
   $("button-inventory").addEventListener("click",()=>toggleBag());
   $("inventory-close").addEventListener("click",()=>toggleBag(false));
@@ -775,9 +782,12 @@
     if(e.key==="1")attack();
     if(e.key==="2")special();
     if(e.key==="3"||e.key.toLowerCase()==="i")toggleBag();
+    if(e.key.toLowerCase()==="j"){
+      toggleBag(false);globalThis.RavenaJournal?.toggle(quest,currentZone);
+    }
     if(e.key==="4")forgeAction();
     if(e.key==="5")fishAction();
-    if(e.key==="Escape"){closeDialogue();toggleBag(false);}
+    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();}
   });
   // Pointer only moves on a ground hit; picking characters can never teleport the player.
   let down=null;
