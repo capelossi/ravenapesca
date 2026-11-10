@@ -22,3 +22,8 @@
 .inventory-empty{font:13px/1.6 system-ui,sans-serif;color:#b6b1aa}
 .craft-tip{font:11px/1.5 system-ui,sans-serif;color:#b7a78b;padding:12px 0 0}
 @media(max-width:750px){.hotbar{z-index:6;bottom:72px}.hotbar .skill{width:40px;height:42px;padding:0}.skill span{line-height:34px}.inventory-panel{right:8px;bottom:130px;max-height:55vh}.actions{z-index:5}.mobile-hint{bottom:124px;font-size:10px;max-width:220px}.stats{z-index:4}}
+
+.character-options{display:flex;gap:7px;flex-wrap:wrap}
+.appearance-option{background:#18202c;color:#d5ccbb;border:1px solid #605c64;padding:8px 12px;border-radius:6px;font:12px system-ui,sans-serif;min-height:36px}
+.appearance-option.selected{border-color:#d8ac68;color:#f8deab;background:linear-gradient(125deg,#573f32,#34303c)}
+.appearance-option:hover{border-color:#e6bd71}
