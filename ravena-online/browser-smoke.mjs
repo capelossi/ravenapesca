@@ -35,6 +35,28 @@ try{
     assert.match(await page.locator("#player-name").innerText(),/Testador/);
     const world=page.locator("#world");
     assert.ok(await world.isVisible(),"3D world should be visible");
+    if(profile.isMobile){
+      const bounds=await page.evaluate(()=>{
+        const rect=selector=>{
+          const r=document.querySelector(selector).getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};
+        };
+        return {
+          minimap:rect("#hud .minimap"),stats:rect("#hud .stats"),
+          actions:rect("#hud .actions"),hotbar:rect("#hud .hotbar")
+        };
+      });
+      assert.ok(bounds.minimap.width<=124,"Mobile minimap must be compact");
+      assert.ok(bounds.stats.right+5<=bounds.actions.left,
+        "Mobile stats and right-hand controls must not overlap");
+      assert.ok(bounds.hotbar.bottom+3<=bounds.stats.top,
+        "Action hotbar should not obscure player health");
+      assert.ok(bounds.minimap.bottom<bounds.hotbar.top,
+        "Top map and bottom hotbar must leave clear world view");
+    }
+    await page.locator("#mini-map-open").click();
+    await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
+    await page.locator("#world-map-close").click();
     await page.locator("#button-settings").click();
     await page.locator("#settings-panel:not(.hidden)").waitFor({state:"visible"});
     await page.locator('[data-quality="leve"]').click();
@@ -123,6 +145,13 @@ try{
       const save=JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null");
       return save && (save.totalFish||0)>=1;
     },null,{timeout:8500});
+    // Mobile must not require physical E keyboard to speak to NPCs.
+    await page.locator("#interaction:not(.hidden)").waitFor({state:"visible",timeout:6000});
+    assert.match(await page.locator("#interaction").innerText(),/Pescador Orien/);
+    await page.locator("#interaction").click();
+    await page.locator("#dialogue:not(.hidden)").waitFor({state:"visible",timeout:5000});
+    assert.equal(await page.locator("#npc-name").innerText(),"Pescador Orien");
+    await page.locator("#dialogue-close").click();
     await page.locator("#button-map").click();
     await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
     await page.locator("#world-map-close").click();
