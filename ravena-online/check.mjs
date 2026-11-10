@@ -18,13 +18,15 @@ const layoutSource=readFileSync(join(dir,"world-layout.js"),"utf8");
 const atlasSource=readFileSync(join(dir,"ui-world-map.js"),"utf8");
 const capitalLayoutSource=readFileSync(join(dir,"capital-layout.js"),"utf8");
 const capitalSceneSource=readFileSync(join(dir,"capital-scene.js"),"utf8");
+const villageLayoutSource=readFileSync(join(dir,"village-layout.js"),"utf8");
+const villageSceneSource=readFileSync(join(dir,"village-scene.js"),"utf8");
 const graphics=readFileSync(join(dir,"graphics.js"),"utf8");
 const combatSource=readFileSync(join(dir,"combat-rules.js"),"utf8");
 const enemiesSource=readFileSync(join(dir,"enemies.js"),"utf8");
 
 for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js",
   "graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js",
-  "capital-layout.js","capital-scene.js"]){
+  "capital-layout.js","capital-scene.js","village-layout.js","village-scene.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
 // Unit tests for server-authoritative movement and proximity snapshots.
@@ -42,6 +44,14 @@ const capital=scope.RavenaCapitalLayout;
 assert.ok(capital?.id==="capital-azarath" && capital.version===1,
   "Capital layout must have a stable id and version");
 assert.ok(scope.RavenaCapitalScene?.create,"Capital scene renderer is missing");
+runInNewContext(villageLayoutSource,{globalThis:scope});
+runInNewContext(villageSceneSource,{globalThis:scope});
+const village=scope.RavenaVillageLayout;
+assert.ok(village?.data?.id==="vila-das-mares" && village.data.version===1,
+  "Village layout registry missing or unversioned");
+assert.ok(scope.RavenaVillageScene?.create,"Village scenery renderer is missing");
+assert.ok(world.settlements["vila-das-mares"].architecture,
+  "Village settlement must reference its modular architecture");
 runInNewContext(navigation,{globalThis:scope});
 const nav=scope.RavenaNavigation;
 assert.ok(nav && typeof nav.findPath==="function","Reusable navigation module missing");
@@ -93,7 +103,8 @@ assert.ok(html.indexOf('src="world-data.js"')<html.indexOf('src="game.js"'),
 assert.ok(html.includes('<script src="ui-chronicles.js"></script>'),"Journal module missing");
 assert.ok(html.includes('<script src="navigation.js"></script>'),"Navigation module missing");
 for(const src of ["graphics.js","combat-rules.js","enemies.js","world-layout.js",
- "ui-world-map.js","capital-layout.js","capital-scene.js"]){
+ "ui-world-map.js","capital-layout.js","capital-scene.js",
+  "village-layout.js","village-scene.js"]){
   assert.ok(html.includes('<script src="'+src+'"></script>'),"Missing module "+src);
   assert.ok(html.indexOf('src="'+src+'"')<html.indexOf('src="game.js"'),
     "Modules must load before game: "+src);
@@ -105,6 +116,11 @@ assert.ok(game.includes("RavenaEnemies.create"),"Game must instantiate enemy run
 assert.ok(game.includes("RavenaVisuals.create"),"Game must initialize graphics settings");
 assert.ok(game.includes("RavenaMapUI.create"),"Game must initialize world atlas");
 assert.ok(game.includes("RavenaCapitalScene.create"),"Game must initialize Capital scene renderer");
+assert.ok(game.includes("RavenaVillageScene.create"),"Game must initialize Village scene renderer");
+assert.ok(game.includes("if(village.isLakeBlocked(x,z,pad))"),
+  "Water collision must be part of world navigation");
+assert.ok(game.includes("village.inPier(x,z,.15)"),
+  "Fishing must use the authored pier footprint");
 assert.ok(game.includes("for(const building of cityLayout.buildings)"),
   "Capital obstacles must be registered separately from decorative meshes");
 assert.ok(game.includes("obstacleBox(building.x,building.z,building.width,building.depth)"),
@@ -129,7 +145,7 @@ assert.ok(unique(layout.regions.map(x=>x.id)),"Atlas region IDs must be unique")
 assert.ok(unique(layout.places.map(x=>x.id)),"Atlas POI IDs must be unique");
 assert.ok(unique(layout.paths.map(x=>x.id)),"Atlas route IDs must be unique");
 assert.equal(layout.regions.length,4,"Map-first foundation has four regions");
-assert.equal(layout.places.length,17,"Capital refinement must have seventeen POIs");
+assert.equal(layout.places.length,22,"Village refinement must have 22 POIs");
 assert.equal(layout.startId,world.start.region,"Atlas initial region must match the world");
 assert.ok(capital.avenues.length>=5,"Capital avenues missing");
 assert.ok(capital.buildings.length>=3,"Capital needs guild, inn and council landmarks");
@@ -149,6 +165,14 @@ for(const building of capital.buildings){
 }
 assert.ok(!game.includes("house(-11,-13,1.1)"),
   "Old generic building must not overlap the guild");
+assert.ok(!game.includes('for(const building of world.settlements["vila-das-mares"].houses)'),
+  "Old generic village houses must be replaced by modular village renderer");
+assert.ok(!game.includes('obstacle(55,1,17)'),
+  "The old circular water obstacle must not block the pier");
+assert.ok(html.indexOf('src="village-layout.js"')<html.indexOf('src="game.js"'),
+  "Village layout must load before game");
+assert.ok(html.indexOf('src="village-scene.js"')<html.indexOf('src="game.js"'),
+  "Village scenery must load before game");
 assert.ok(html.indexOf('src="capital-layout.js"')<html.indexOf('src="game.js"'),
   "Capital layout must load before game");
 assert.ok(html.indexOf('src="capital-scene.js"')<html.indexOf('src="game.js"'),
@@ -261,6 +285,51 @@ for(const id of ["guilda-aventureiros","estalagem-corvo","palacio-conselho",
   assert.ok(path.length>0,"There must be a walking route from spawn to "+id);
   assert.ok(Math.hypot(path.at(-1).x-poi.x,path.at(-1).z-poi.z)<2.1,
     "Path should end close to selected POI: "+id);
+}
+// A lagoon is solid water, except for the authored, visible jetty.
+assert.equal(village.isLakeBlocked(55,1,.25),true,"Deep water must be blocked");
+assert.equal(village.isLakeBlocked(45,1,.25),true,"Water beyond the jetty must remain blocked");
+assert.equal(village.isLakeBlocked(40,1,.25),false,"The pier must stay walkable");
+assert.equal(village.inPier(33,1,.15),true,"Fishing NPC stands on the walkable pier");
+assert.equal(village.inPier(55,1,.15),false,"Open water must not be a fishing position");
+assert.equal(village.isLakeBlocked(43,19,.45),false,"Lighthouse approach must be dry");
+assert.ok(village.data.buildings.length>=5,"Village must have a civic, residential and harbor layout");
+assert.ok(new Set(village.data.buildings.map(b=>b.id)).size===village.data.buildings.length,
+  "Coastal building IDs must be unique");
+for(const b of village.data.buildings){
+  const poi=layout.places.find(p=>p.id===b.id);
+  assert.ok(poi?.phase==="greybox","Coastal building must be visible in Atlas: "+b.id);
+  assert.ok(Math.hypot(poi.x-b.approach.x,poi.z-b.approach.z)<.6,
+    "Coastal Atlas location must match building entrance: "+b.id);
+  assert.ok(!village.isLakeBlocked(b.approach.x,b.approach.z,.5),
+    "Coastal entrance cannot be underwater: "+b.id);
+  assert.ok(Math.abs(b.approach.x-b.x)>=b.width/2+.4||
+            Math.abs(b.approach.z-b.z)>=b.depth/2+.4,
+    "Coastal entrance must be outside its building: "+b.id);
+}
+const villageBlocks=village.data.buildings.map(b=>({
+  x:b.x,z:b.z,halfW:b.width/2,halfD:b.depth/2
+}));
+const villageCircles=[
+  {x:village.data.lighthouse.x,z:village.data.lighthouse.z,
+    r:village.data.lighthouse.radius},
+  {x:village.data.market.x,z:village.data.market.z,r:1.65},
+  ...village.data.fishStalls.map(x=>({x:x.x,z:x.z,r:1.65}))
+];
+const blockedVillage=(x,z,pad=.65)=>
+  !Number.isFinite(x)||!Number.isFinite(z)||Math.abs(x)>=88||Math.abs(z)>=88||
+  village.isLakeBlocked(x,z,pad)||
+  villageBlocks.some(b=>Math.abs(x-b.x)<b.halfW+pad&&Math.abs(z-b.z)<b.halfD+pad)||
+  villageCircles.some(b=>Math.hypot(x-b.x,z-b.z)<b.r+pad);
+for(const id of ["entrada-vila","praca-redes","mercado-sal","cais-mae-aguas",
+  "farol-mares","prefeitura-mares","pousada-vila","armazem-sal","oficina-naval","casas-pescadores"]){
+  const p=layout.places.find(item=>item.id===id);
+  assert.ok(p?.phase==="greybox","Missing Village POI: "+id);
+  assert.ok(!blockedVillage(p.x,p.z,.4),"Village atlas POI blocked: "+id);
+  const walkway=nav.findPath({x:35,z:-13},{x:p.x,z:p.z},blockedVillage);
+  assert.ok(walkway.length>0,"Village needs footpath from square to "+id);
+  assert.ok(Math.hypot(walkway.at(-1).x-p.x,walkway.at(-1).z-p.z)<2.2,
+    "Village path ends far from POI: "+id);
 }
 const clear=nav.findPath({x:0,z:0},{x:14,z:0},()=>false);
 assert.ok(clear.length>0,"Path to open terrain must exist");
