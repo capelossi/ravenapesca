@@ -100,10 +100,19 @@
     }
   });
   const bounded=(x,z)=> Math.abs(x)<88 && Math.abs(z)<88;
-  function obstacle(x,z,r){obstacles.push({x,z,r});}
+  function obstacle(x,z,r){obstacles.push({kind:"circle",x,z,r});}
+  // Edifícios novos usam planta retangular, em vez de colisão circular ampla.
+  // Isso libera a circulação nas esquinas e impede caminhar através das paredes.
+  function obstacleBox(x,z,width,depth){
+    obstacles.push({kind:"box",x,z,halfW:width/2,halfD:depth/2});
+  }
   function blocked(x,z,pad=.65) {
     if(!bounded(x,z))return true;
-    for(const o of obstacles) if((o.x-x)**2+(o.z-z)**2<(o.r+pad)**2)return true;
+    for(const o of obstacles){
+      if(o.kind==="box"){
+        if(Math.abs(x-o.x)<o.halfW+pad && Math.abs(z-o.z)<o.halfD+pad)return true;
+      }else if((o.x-x)**2+(o.z-z)**2<(o.r+pad)**2)return true;
+    }
     return false;
   }
   function box(name,pos,sz,material,collides=false) {
@@ -359,7 +368,7 @@
     B,scene,m,box,cyl,sphere,roof,sign,marketStall,layout:cityLayout
   });
   for(const building of cityLayout.buildings)
-    obstacle(building.x,building.z,Math.max(building.width,building.depth)*.52);
+    obstacleBox(building.x,building.z,building.width,building.depth);
   const coastalMarket=world.settlements["vila-das-mares"].market;
   marketStall(coastalMarket.x,coastalMarket.z,m.roofDark);
   sign("MERCADO DO SAL",coastalMarket.x,coastalMarket.z-5,"#dce7c4");
