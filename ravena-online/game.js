@@ -415,15 +415,14 @@
     const label=sign(text,x,z,color);
     return label;
   }
-  function addNPC(name,x,z,story,kind="forjador",give=0){
+  function addNPC({id,name,x,z,story,kind="forjador"}){
     const root=makeActor(name,x,z,kind,m.skin1,m.hair1);
     root.scaling.scaleInPlace(.86);
     disc(name+" ring",x,z,1.05,m.npcRing,.09);
-    interactables.push({name,x,z,root,story,give});
+    interactables.push({id,name,x,z,root,story});
     actorLabel(name,x,z);
   }
-  for(const npc of world.npcs)
-    addNPC(npc.name,npc.x,npc.z,npc.story,npc.kind,0);
+  for(const npc of world.npcs)addNPC(npc);
   // Training enemies and their static HP.
   function addMob(x,z) {
     const root=new B.TransformNode("training golem",scene);root.position.set(x,0,z);
@@ -636,8 +635,7 @@
     dialogueOpen=true;path=[];marker.setEnabled(false);markerInner.setEnabled(false);
     $("npc-name").textContent=npc.name;$("npc-text").textContent=npc.story;
     $("dialogue").classList.remove("hidden");
-    const record=world.npcs.find(n=>n.name===npc.name);
-    if(record)advanceStory("talk:"+record.id);
+    if(npc.id)advanceStory("talk:"+npc.id);
   }
   function interact(){
     if(!hero)return;
