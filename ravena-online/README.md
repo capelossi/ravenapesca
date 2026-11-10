@@ -12,7 +12,7 @@
 6. Pressione **M** ou clique em **Mapa** para abrir o Atlas do Reino. Escolha um marco construído e clique em **Traçar caminho a pé**; o personagem caminhará pelo mapa, sem teleporte.
 7. Saia da Capital de Azarath e siga a Estrada das Lanternas a leste: a **Vila das Marés é uma cidade vizinha**, com casas, mercado, prefeitura, cais e farol. Explore também a floresta a oeste e a forja ao sul.
 8. O personagem, classe, nível, XP, mochila, aparência, contadores e posição são salvos localmente no navegador.
-9. Vá até o píer do lago e pressione **5** (ou toque no ícone de pesca) para lançar a linha. Espere cerca de 3 segundos para capturar um peixe.
+9. Caminhe até as tábuas do píer da Vila das Marés e pressione **5** (ou toque no ícone de pesca) para lançar a linha. Espere cerca de 3 segundos para capturar um peixe.
 10. Nas montanhas, aproxime-se dos cristais e pressione **4** para extrair minérios; perto das brasas da forja, pressione **4** para criar adagas usando 3 minérios. **Forjadores** ganham bônus de produção.
 
 ## Recursos implementados nesta pré-alfa
@@ -23,10 +23,11 @@
 - Personagens procedurais com pivôs animados para pernas, braços, capa e respiração (ainda não são modelos 3D finais).
 - Praça com bancas de mercado, fonte, jardins e NPCs; cristais de minério e ondulações da água.
 - Capital de Azarath e **Vila das Marés**, cidade portuária vizinha ligada por estrada caminhável, com casas, praça, bancas de mercado, porto, farol e o Lago da Mãe das Águas. Floresta e montanhas também estão representadas.
-- **Atlas do Reino (M)**: mapa interativo que apresenta quatro regiões, quatro estradas/trilhas e 17 marcos; mostra a posição do jogador e permite iniciar uma rota de caminhada para pontos do greybox. O mapa sinaliza construções futuras, mas não permite viajar até elas.
+- **Atlas do Reino (M)**: mapa interativo que apresenta quatro regiões, quatro estradas/trilhas e 22 marcos; mostra a posição do jogador e permite iniciar uma rota de caminhada para pontos do greybox. O mapa sinaliza construções futuras, mas não permite viajar até elas.
 - Rotas físicas alinhadas ao Atlas, com passagens livres nas trilhas e Portão Sul com abertura real.
+- **Vila das Marés redesenhada (Fase 1.3):** prefeitura, pousada, armazém, oficina naval, bairro dos pescadores, praça, duas bancas no mercado, farol, barcos e cais, com arquivos separados para planta e renderização. Lago possui colisão própria: o jogador pode caminhar pelo píer, mas não pelo fundo da água. O Santuário da Mãe das Águas fica reservado no Atlas (ainda não construído).
 - **Capital redesenhada (Fase 1.2):** prédios individuais de Guilda dos Aventureiros, Palácio do Conselho e Estalagem Corvo Dourado, com praças, bancas, avenidas, iluminação, acesso identificado e colisões retangulares na arquitetura nova. Os interiores ainda não estão disponíveis.
-- Nove NPCs e **Capítulo I — A Luz Sobre o Lago** com nove etapas, diálogos, exploração e dois caminhos possíveis para obter informações sem exigir pesca ou forja.
+- Onze NPCs e **Capítulo I — A Luz Sobre o Lago** com nove etapas, diálogos, exploração e dois caminhos possíveis para obter informações sem exigir pesca ou forja.
 - Diário de Crônicas, acessível por J ou pelo botão, com lore, regiões conectadas, missão ativa e próximos territórios planejados.
 - **Três famílias de inimigos**: Lobos dos Sussurros (floresta), Golens da Pedra (montanhas) e Ecos do Véu (regiões selvagens). IA local de perseguição e ataques, recompensas, saque, reaparecimento e derrota com retorno à capital.
 - HUD de alvo com vida do inimigo e efeitos simples de combate.
@@ -61,6 +62,8 @@
 - `world-layout.js` é o manifesto da planta inicial: geografia, centros de região, estradas, caminhos e marcos com estado `greybox` ou `planned`.
 - `capital-layout.js` descreve edifícios, bairros, entradas, mercado e avenidas da Capital, sem depender do motor gráfico.
 - `capital-scene.js` interpreta esse catálogo como geometria 3D provisória; os modelos GLB finais poderão substituí-la sem alterar o mapa.
+- `village-layout.js` cataloga a cidade portuária (edifícios, acessos, píer, costa, farol) e define o corredor sólido que atravessa a água sem permitir andar pelo lago.
+- `village-scene.js` renderiza esses distritos e elementos de água, sem misturar suas posições à lógica de quests.
 - `ui-world-map.js` desenha o Atlas a partir do manifesto; seleciona destinos para o movimento existente, sem conceder teleporte.
 - `ui-chronicles.js` cuida do diário sem misturar a renderização com os dados narrativos.
 - `navigation.js` implementa navegação A* por grade em módulo independente com fila de prioridade; futuramente será trocado por NavMesh por regiões.
@@ -82,7 +85,7 @@ A pescaria **não é um jogo separado**: é uma das atividades da Vila das Maré
 - **Não há autenticação, servidor online, sincronização multiplayer, economia, guildas, PvP ou comércio real**. O arquivo de simulação de servidor é apenas uma base isolada. Habilidades ainda são simples testes de dano/energia, não árvores completas.
 - Pesca, mineração, forja e inventário **já têm loops demonstrativos locais**, mas ainda não há profissões profundas com progressão própria, missões completas, receitas avançadas, equipamentos utilizáveis ou economia entre jogadores.
 - Os personagens são representações 3D geométricas provisórias com animações articuladas simples; ainda não são modelos detalhados com animações esqueléticas, texturas PBR ou a personalização das referências visuais.
-- A navegação combina obstáculos circulares legados com **colisão retangular nos novos edifícios da capital**, e continua usando grade A*, sem NavMesh profissional. **O Atlas é um rascunho geográfico**; nem todas as rotas foram percorridas manualmente, e selecionar um destino pode falhar por obstáculos provisórios.
+- A navegação combina obstáculos circulares legados com **colisão retangular nos novos edifícios da capital e da vila**, além de bloqueio de água com exceção somente para o píer. Continua usando grade A*, sem NavMesh profissional. **O Atlas é um rascunho geográfico**; nem todas as rotas foram percorridas manualmente, e selecionar um destino pode falhar por obstáculos provisórios.
 - Testes automatizados não garantem jogabilidade final. O teste de navegador é separado e sua execução deve ser verificada no GitHub Actions. Ainda é necessário testar manualmente movimentação, colisões, desempenho e sensação de combate em dispositivos reais.
 - A entrada roda em uma URL/pasta própria e não altera a página principal do PescaVena.
 - **Esta entrega não é um MMORPG de grande escala concluído.** Há apenas um protótipo conectado com duas cidades e duas regiões de exploração na mesma cena; os interiores, serviços de cidade, NPCs com rotinas, escolhas ramificadas reais e todo o backend MMORPG são futuros desenvolvimentos.
