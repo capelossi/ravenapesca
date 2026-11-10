@@ -37,7 +37,11 @@
       </div>
       <div class="map-hint">Capital ↔ Vila das Marés • via estrada</div>
     </aside>
-    <div class="combat-target glass hidden" id="combat-target" aria-live="polite"></div>
+    <div class="combat-target glass hidden" id="combat-target" aria-live="polite">
+      <strong id="target-name">Inimigo</strong>
+      <div class="target-bar"><div id="target-fill" class="target-fill"></div></div>
+      <span id="target-hp">0 / 0</span>
+    </div>
     <div class="interaction glass hidden" id="interaction">Pressione <kbd>E</kbd> para conversar</div>
     <div class="toast hidden" id="toast" role="status"></div>
     <section class="stats glass">
@@ -113,6 +117,7 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="world-data.js"></script>
   <script src="combat-rules.js"></script>
+  <script src="enemies.js"></script>
   <script src="graphics.js"></script>
   <script src="navigation.js"></script>
   <script src="ui-chronicles.js"></script>
