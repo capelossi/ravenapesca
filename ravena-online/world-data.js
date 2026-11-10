@@ -45,7 +45,7 @@ globalThis.RavenaWorldData = Object.freeze({
         { x: 45, z: 23, size: .74, roof:"blue" },
         { x: 47, z: 29, size: .67, roof:"red" }
       ],
-      market: { x: 27, z:-30 }
+      market: { x: 27, z:-26 }
     }
   },
   npcs: [
@@ -60,6 +60,10 @@ globalThis.RavenaWorldData = Object.freeze({
     {
       id:"pescador-orien", name:"Pescador Orien", x:33, z:1, kind:"mago",
       story:"No píer, pressione 5 para lançar a linha e espere a fisgada. A vila possui mercado, hospedaria e expedições — a pescaria é uma profissão livre, não o objetivo de todo aventureiro. Dizem que o Lago da Mãe das Águas guarda memórias em suas profundezas."
+    },
+    {
+      id:"faroleira-iara", name:"Faroleira Iara", x:44, z:20, kind:"mago",
+      story:"A luz do farol voltou a acender depois de décadas. Basta observar seu reflexo sobre a água para perceber as figuras do mundo antigo. Você não precisa pescar para investigar: a pista está diante de todos que se aproximam."
     },
     {
       id:"mercadora-naila", name:"Mercadora Naila", x:22, z:-26, kind:"forjador",
@@ -91,17 +95,17 @@ globalThis.RavenaWorldData = Object.freeze({
         description:"Encontre Pescador Orien no cais e pergunte sobre o lago.",
         trigger:"talk:pescador-orien", xp:10, notice:"Orien acredita que há uma memória escondida sob as águas." },
       { id:"rede-misteriosa", title:"Um sinal nas águas",
-        description:"No píer da vila, pressione 5 e capture um peixe.",
-        trigger:"fish:any", xp:15, notice:"Algo no lago reagiu à sua presença. Procure a forja!" },
+        description:"Capture um peixe no píer (5) OU converse com a Faroleira Iara perto do farol.",
+        trigger:["fish:any","talk:faroleira-iara"], xp:15, notice:"Algo no lago reagiu à sua presença. Procure a forja!" },
       { id:"rumo-forja", title:"O metal que responde",
         description:"Viaje até as Montanhas da Forja, ao sul da Capital.",
         trigger:"enter:montanhas-da-forja", xp:15, notice:"O mesmo brilho do farol ecoa nos minérios da montanha." },
       { id:"coletar-minerio", title:"Fragmentos do Véu",
-        description:"Encontre cristais nas montanhas e pressione 4 para minerar.",
-        trigger:"mine:any", xp:15, notice:"Você encontrou um minério ressonante." },
+        description:"Minere cristais (4) OU converse com o Mestre Ferreiro para analisar os fragmentos.",
+        trigger:["mine:any","talk:mestre-ferreiro"], xp:15, notice:"Você encontrou um minério ressonante." },
       { id:"primeira-forja", title:"A primeira lâmina",
-        description:"Nas brasas da oficina, pressione 4 para forjar uma adaga.",
-        trigger:"craft:dagger", xp:25, notice:"O metal ganhou forma. A Capitã Elyra deve saber disso." },
+        description:"Forje uma adaga (4) OU volte ao Mestre Ferreiro e receba seu relatório.",
+        trigger:["craft:dagger","talk:mestre-ferreiro"], xp:25, notice:"O metal ganhou forma. A Capitã Elyra deve saber disso." },
       { id:"retorno-capital", title:"A resposta de Azarath",
         description:"Volte à capital e fale novamente com a Capitã Elyra.",
         trigger:"talk:capita-elyra", xp:35, notice:"Capítulo I concluído! O mistério do Farol das Marés apenas começou." }
