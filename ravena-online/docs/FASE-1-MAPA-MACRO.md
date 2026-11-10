@@ -114,8 +114,11 @@ O terreno possui estradas e trilhas provisórias derivadas do manifesto; árvore
 - [x] Dois NPCs de contexto: Dona Celina e Mestre Naval Taren.
 - [x] Caminhada **capital → Praça das Redes → píer e pesca** validada por Chromium automatizado em viewport desktop e móvel (GitHub Actions run 42906748689).
 - [ ] Confirmar as rotas em celulares físicos e conferir manualmente as entradas de todos os distritos.
-- [ ] Refazer águas e praias com material mais realista, sem adicionar obstáculos invisíveis.
-- [ ] Ajustar a escala, os terrenos, sombras e possíveis gargalos de câmera.
+- [x] Primeira revisão da água: tons azul-esverdeados menos intensos, textura de ondulações e espuma discreta sem acrescentar obstáculos.
+- [ ] Refazer a água com materiais definitivos e avaliar cor e brilho em Android real.
+- [x] HUD móvel compacto: minimapa reduzido, controles inferiores separados das barras de vida e interação de NPC tocável.
+- [x] Placas e nomes 3D agora aparecem somente de perto; no celular, a conversa mostra o NPC no botão contextual.
+- [ ] Ajustar escala, terrenos, sombras e performance após novo teste visual no aparelho real.
 - [ ] Adicionar interiores, viagens de barco e economia apenas depois de aprovar o mapa.
 
 ### Fase 1.4 — Floresta e Montanhas
