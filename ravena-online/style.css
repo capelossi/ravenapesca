@@ -118,3 +118,76 @@
  .atlas-poi-button{min-height:42px}
  .atlas-legend{font-size:10px}
 }
+
+/* Fase 1.3.1 — leitura visual em celular (baseada no teste real Android). */
+.minimap .map-title{display:flex;align-items:center;justify-content:space-between;gap:5px}
+.mini-open{padding:1px 5px;border:1px solid rgba(231,190,118,.38);border-radius:5px;background:#2a323b;color:#f0ce95;font:16px/1.2 system-ui,sans-serif;touch-action:manipulation}
+.mini-open:hover,.mini-open:focus-visible{outline:1px solid #dfbb7c;background:#393a41}
+.interaction{cursor:pointer;color:#f5e8cc;touch-action:manipulation;z-index:4}
+.interaction:hover,.interaction:focus-visible{border-color:#ead2a1;background:#273440}
+.interaction kbd{pointer-events:none}
+@media(max-width:750px){
+  /* O minimapa mostrado anteriormente cobria NPCs e quase um quarto da cena. */
+  #hud .minimap{width:112px;top:55px;right:8px;padding:6px;border-radius:9px;
+    background:rgba(14,22,32,.78);border-color:rgba(224,192,132,.47)}
+  #hud .map-title{font:700 9px/1.2 system-ui,sans-serif;letter-spacing:1.2px;
+    margin:0 0 5px;color:#f2d3a0}
+  #hud .map-field{height:68px;border-radius:5px}
+  #hud .map-mark{font-size:14px}
+  #hud #map-player{font-size:12px}
+  #hud .mini-open{font-size:13px;padding:0 3px;min-width:22px;min-height:22px}
+  #hud .topbar{min-height:49px;gap:6px;padding:7px 10px;background:linear-gradient(180deg,rgba(8,12,20,.89),transparent)}
+  #hud .brand{font-size:13px;letter-spacing:1.1px;white-space:nowrap}
+  #hud .brand-rune{margin-right:3px}
+  #hud .zone{font-size:9px;line-height:1.15;letter-spacing:1px;max-width:136px;text-wrap:balance}
+  #hud .stats{left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));
+    width:min(53vw,210px);min-height:77px;padding:6px;gap:6px;border-radius:9px}
+  #hud .portrait{width:33px;height:38px;flex:none;font-size:23px}
+  #hud .player-line{display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+    line-height:1.05;font-size:11px;margin-bottom:3px;overflow:hidden}
+  #hud .player-line strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #hud .player-line span{font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #hud .stat-bar{height:10px;margin:3px 0}
+  #hud .stat-bar span{font-size:8px}
+  #hud .actions{right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:135px;
+    gap:2px;padding:4px;border-radius:9px}
+  #hud .actions button{width:auto;min-width:0;height:33px;min-height:33px;
+    font-size:17px;line-height:1;display:grid;place-items:center;padding:0 2px;border-radius:4px}
+  #hud .actions button:active{background:rgba(221,177,111,.2)}
+  #hud .actions button span{display:none}
+  #hud .hotbar{bottom:calc(98px + env(safe-area-inset-bottom,0px));
+    left:50%;transform:translateX(-50%);width:max-content;max-width:94vw;gap:4px;padding:4px;
+    justify-content:center;border-radius:10px}
+  #hud .hotbar .skill{width:40px;min-width:40px;height:42px;
+    touch-action:manipulation;border-radius:7px}
+  #hud .hotbar .skill span{font-size:20px;line-height:34px}
+  #hud .hotbar .skill small{font-size:10px;right:4px}
+  #hud .interaction{left:50%;bottom:calc(157px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%);width:max-content;max-width:calc(100vw - 20px);
+    text-align:center;white-space:normal;line-height:1.25;
+    font:600 12px/1.3 system-ui,sans-serif;padding:10px 14px}
+  #hud .mobile-hint{display:block;left:50%;bottom:calc(155px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%);white-space:normal;max-width:85vw;width:max-content;
+    text-align:center;font:10px/1.25 system-ui,sans-serif;color:#c8cdd0;opacity:.82}
+  #hud .interaction:not(.hidden)~.mobile-hint{display:none}
+  #hud .toast{top:calc(57px + env(safe-area-inset-top,0px));
+    left:50%;max-width:calc(100vw - 150px);min-width:140px;
+    padding:8px 10px;font-size:11px;line-height:1.35}
+  #hud .combat-target{top:55px;left:8px;max-width:calc(100vw - 146px);
+    font-size:10px;padding:5px 7px}
+  .dialogue{bottom:calc(164px + env(safe-area-inset-bottom,0px));
+    max-height:44dvh;overflow:auto;padding:14px}
+  .dialogue strong{font-size:17px}
+  .dialogue p{font-size:13px;line-height:1.5}
+}
+@media(max-width:370px){
+  #hud .brand{font-size:12px}
+  #hud .zone{font-size:8px;max-width:112px}
+  #hud .stats{width:51vw}
+  #hud .portrait{width:27px}
+  #hud .actions{width:122px}
+  #hud .actions button{font-size:15px;height:31px;min-height:31px}
+  #hud .hotbar .skill{width:36px;min-width:36px;height:40px}
+  #hud .hotbar{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+}
