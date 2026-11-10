@@ -17,7 +17,7 @@
       <div class="zone" id="zone">Capital de Azarath</div>
     </header>
     <aside class="quests glass">
-      <div class="panel-title">✧ O DESPERTAR</div>
+      <div class="panel-title" id="quest-chapter">✧ O DESPERTAR</div>
       <div class="quest-title" id="quest-title">O primeiro passo</div>
       <div class="quest-description" id="quest-description">Clique no chão para explorar a cidade.</div>
       <div class="divider"></div>
@@ -53,7 +53,11 @@
       <button class="skill" data-action="forge" title="Minerar ou forjar perto da oficina (4)"><span>⚒</span><small>4</small></button>
       <button class="skill" data-action="fish" title="Pescar perto do píer (5)"><span>🎣</span><small>5</small></button>
     </nav>
-    <div class="actions glass"><button id="button-inventory" title="Mochila">▣ <span>Mochila</span></button><button id="button-profile" title="Ficha do personagem">☷ <span>Personagem</span></button><button id="button-help" title="Controles">? <span>Controles</span></button></div>
+    <div class="actions glass"><button id="button-journal" title="Diário de aventuras">▤ <span>Crônicas</span></button><button id="button-inventory" title="Mochila">▣ <span>Mochila</span></button><button id="button-profile" title="Ficha do personagem">☷ <span>Personagem</span></button><button id="button-help" title="Controles">? <span>Controles</span></button></div>
+    <section id="chronicle-panel" class="chronicle-panel glass hidden" aria-label="Diário de aventuras">
+      <div class="chronicle-header"><div><span class="chronicle-eyebrow">REGISTRO DO REINO</span><h2>Crônicas de Azarath</h2></div><button id="chronicle-close" aria-label="Fechar crônicas">×</button></div>
+      <div id="chronicle-content"></div>
+    </section>
     <section id="inventory-panel" class="inventory-panel glass hidden" aria-label="Mochila de aventureiro">
       <div class="inventory-header"><h2>✦ Mochila do aventureiro</h2><button id="inventory-close" aria-label="Fechar mochila">×</button></div>
       <p class="inventory-subtitle">Recursos coletados permanecem neste navegador.</p>
@@ -95,6 +99,7 @@
   <div id="dialogue" class="dialogue glass hidden"><strong id="npc-name"></strong><p id="npc-text"></p><button id="dialogue-close">Continuar ↗</button></div>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="world-data.js"></script>
+  <script src="ui-chronicles.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
