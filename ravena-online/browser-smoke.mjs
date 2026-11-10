@@ -68,7 +68,7 @@ try{
     await page.waitForFunction(()=>{
       const p=window.RavenaAlphaDebug?.snapshot();
       return p && Math.hypot(p.x+15,p.z+9.5)<1.8;
-    },{timeout:17000});
+    },null,{timeout:17000});
     const position=await page.evaluate(()=>window.RavenaAlphaDebug?.snapshot());
     assert.equal(position.blockedAtHero,false,
       profile.name+": actor is inside an obstacle after walking to the guild");
