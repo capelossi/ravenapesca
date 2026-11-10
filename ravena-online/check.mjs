@@ -133,7 +133,7 @@ assert.ok(css.includes(".chronicle-panel"),"Journal styles missing");
 assert.ok(game.includes("for(const npc of world.npcs)"),"NPCs must be data-driven");
 assert.ok(game.includes("if(npc.id)advanceStory"),"Narrative must depend on NPC ids");
 assert.ok(!game.includes("n.name===npc.name"),"Narrative must not depend on translated display names");
-assert.ok(game.includes("world.settlements"),"Village buildings must be data-driven");
+assert.ok(game.includes("RavenaVillageScene.create"),"Village buildings must use data-driven scenery");
 assert.ok(game.includes('advanceStory("enter:"+region.id)'),"Zone events must drive story");
 assert.ok(game.includes('advanceStory("fish:any")'),"Fishing must have narrative event");
 assert.ok(game.includes('advanceStory("mine:any")'),"Mining must have narrative event");
