@@ -16,12 +16,15 @@ const chronicles=readFileSync(join(dir,"ui-chronicles.js"),"utf8");
 const navigation=readFileSync(join(dir,"navigation.js"),"utf8");
 const layoutSource=readFileSync(join(dir,"world-layout.js"),"utf8");
 const atlasSource=readFileSync(join(dir,"ui-world-map.js"),"utf8");
+const capitalLayoutSource=readFileSync(join(dir,"capital-layout.js"),"utf8");
+const capitalSceneSource=readFileSync(join(dir,"capital-scene.js"),"utf8");
 const graphics=readFileSync(join(dir,"graphics.js"),"utf8");
 const combatSource=readFileSync(join(dir,"combat-rules.js"),"utf8");
 const enemiesSource=readFileSync(join(dir,"enemies.js"),"utf8");
 
 for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js",
-  "graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js"]){
+  "graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js",
+  "capital-layout.js","capital-scene.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
 // Unit tests for server-authoritative movement and proximity snapshots.
@@ -33,6 +36,12 @@ assert.ok(world,"World registry must be loaded");
 runInNewContext(layoutSource,{globalThis:scope});
 const layout=scope.RavenaMapLayout;
 assert.ok(layout && layout.version===1,"Versioned macro map missing");
+runInNewContext(capitalLayoutSource,{globalThis:scope});
+runInNewContext(capitalSceneSource,{globalThis:scope});
+const capital=scope.RavenaCapitalLayout;
+assert.ok(capital?.id==="capital-azarath" && capital.version===1,
+  "Capital layout must have a stable id and version");
+assert.ok(scope.RavenaCapitalScene?.create,"Capital scene renderer is missing");
 runInNewContext(navigation,{globalThis:scope});
 const nav=scope.RavenaNavigation;
 assert.ok(nav && typeof nav.findPath==="function","Reusable navigation module missing");
@@ -83,7 +92,8 @@ assert.ok(html.indexOf('src="world-data.js"')<html.indexOf('src="game.js"'),
   "World manifest must load before the game");
 assert.ok(html.includes('<script src="ui-chronicles.js"></script>'),"Journal module missing");
 assert.ok(html.includes('<script src="navigation.js"></script>'),"Navigation module missing");
-for(const src of ["graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js"]){
+for(const src of ["graphics.js","combat-rules.js","enemies.js","world-layout.js",
+ "ui-world-map.js","capital-layout.js","capital-scene.js"]){
   assert.ok(html.includes('<script src="'+src+'"></script>'),"Missing module "+src);
   assert.ok(html.indexOf('src="'+src+'"')<html.indexOf('src="game.js"'),
     "Modules must load before game: "+src);
@@ -94,6 +104,9 @@ assert.ok(game.includes("RavenaNavigation.findPath"),"Game must use modular path
 assert.ok(game.includes("RavenaEnemies.create"),"Game must instantiate enemy runtime");
 assert.ok(game.includes("RavenaVisuals.create"),"Game must initialize graphics settings");
 assert.ok(game.includes("RavenaMapUI.create"),"Game must initialize world atlas");
+assert.ok(game.includes("RavenaCapitalScene.create"),"Game must initialize Capital scene renderer");
+assert.ok(game.includes("for(const building of cityLayout.buildings)"),
+  "Capital obstacles must be registered separately from decorative meshes");
 assert.ok(game.includes('if(atlas.visible)atlas.update'),"Player marker must follow position");
 assert.ok(game.includes('onTrail(x,z'),"Roads must clear vegetation and obstacles");
 assert.ok(game.includes('gate pier'),"South city gate must remain traversable");
@@ -114,8 +127,30 @@ assert.ok(unique(layout.regions.map(x=>x.id)),"Atlas region IDs must be unique")
 assert.ok(unique(layout.places.map(x=>x.id)),"Atlas POI IDs must be unique");
 assert.ok(unique(layout.paths.map(x=>x.id)),"Atlas route IDs must be unique");
 assert.equal(layout.regions.length,4,"Map-first foundation has four regions");
-assert.equal(layout.places.length,15,"Map-first foundation has fifteen POIs");
+assert.equal(layout.places.length,17,"Capital refinement must have seventeen POIs");
 assert.equal(layout.startId,world.start.region,"Atlas initial region must match the world");
+assert.ok(capital.avenues.length>=5,"Capital avenues missing");
+assert.ok(capital.buildings.length>=3,"Capital needs guild, inn and council landmarks");
+assert.ok(unique(capital.buildings.map(b=>b.id)),"Capital building IDs duplicated");
+assert.ok(unique(capital.avenues.map(a=>a.id)),"Capital avenue IDs duplicated");
+for(const building of capital.buildings){
+  const point=layout.places.find(p=>p.id===building.id);
+  assert.ok(point && point.phase==="greybox",
+    "Capital landmark must exist in atlas as a greybox: "+building.id);
+  assert.ok(Math.hypot(point.x-building.approach.x,point.z-building.approach.z)<.6,
+    "Atlas approach and landmark entrance must match: "+building.id);
+  assert.ok(building.width>=5&&building.depth>=5&&building.height>=5,
+    "Capital buildings need meaningful visual mass: "+building.id);
+  assert.ok(Math.hypot(world.start.x-building.x,world.start.z-building.z)>
+    Math.max(building.width,building.depth)*.52+2,
+    "A building cannot cover the character spawn point");
+}
+assert.ok(!game.includes("house(-11,-13,1.1)"),
+  "Old generic building must not overlap the guild");
+assert.ok(html.indexOf('src="capital-layout.js"')<html.indexOf('src="game.js"'),
+  "Capital layout must load before game");
+assert.ok(html.indexOf('src="capital-scene.js"')<html.indexOf('src="game.js"'),
+  "Capital scene must load before game");
 for(const r of layout.regions)
   assert.ok(world.regions.some(z=>z.id===r.id),"Atlas region unknown: "+r.id);
 for(const spot of layout.places){
@@ -202,6 +237,26 @@ assert.ok(atlasSource.includes("onNavigate(selected)"),"Atlas must use on-foot r
 assert.ok(atlasSource.includes('place.phase==="planned"'),"Atlas must visually mark planned POIs");
 assert.ok(html.indexOf('src="world-layout.js"')<html.indexOf('src="ui-world-map.js"'),
   "Layout module must load before Atlas UI");
+// Route test uses the authored architectural blockers and known legacy
+// public fixtures; it does not replace collision tests in Chromium.
+const cityBlockers=[
+ ...capital.buildings.map(b=>({x:b.x,z:b.z,r:Math.max(b.width,b.depth)*.52})),
+ {x:-12,z:13,r:3.03},{x:12,z:13,r:2.7},{x:23,z:-8,r:2.25},
+ {x:0,z:13,r:1.85},...capital.stalls.map(a=>({x:a.x,z:a.z,r:1.65}))
+];
+const blockedCity=(x,z,pad=.65)=>
+  Math.abs(x)>=88||Math.abs(z)>=88||
+  cityBlockers.some(b=>Math.hypot(x-b.x,z-b.z)<b.r+pad);
+for(const id of ["guilda-aventureiros","estalagem-corvo","palacio-conselho",
+  "mercado-azarath","portao-sul"]){
+  const poi=layout.places.find(p=>p.id===id);
+  assert.ok(poi?.phase==="greybox","Built Capital POI missing: "+id);
+  assert.ok(!blockedCity(poi.x,poi.z,.4),"Capital POI is inside an obstruction: "+id);
+  const path=nav.findPath(world.start,{x:poi.x,z:poi.z},blockedCity);
+  assert.ok(path.length>0,"There must be a walking route from spawn to "+id);
+  assert.ok(Math.hypot(path.at(-1).x-poi.x,path.at(-1).z-poi.z)<2.1,
+    "Path should end close to selected POI: "+id);
+}
 const clear=nav.findPath({x:0,z:0},{x:14,z:0},()=>false);
 assert.ok(clear.length>0,"Path to open terrain must exist");
 const isBlocked=(x,z,pad=0)=>Math.hypot(x-6,z)<3+pad;
