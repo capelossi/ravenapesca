@@ -42,7 +42,7 @@ globalThis.RavenaMapLayout = Object.freeze({
       x:-15,z:-10,phase:"planned",detail:"Contrato de missões, grupos e profissões; fachada e interiores serão refinados."},
     {id:"mercado-azarath",region:"capital-azarath",name:"Mercado de Azarath",kind:"market",
       x:-18,z:-14,phase:"greybox",detail:"Comércio e bancas. Economia entre jogadores ainda não implementada."},
-    {id:"portao-capital",region:"capital-azarath",name:"Portão do Norte",kind:"gate",
+    {id:"portao-sul",region:"capital-azarath",name:"Portão Sul de Azarath",kind:"gate",
       x:0,z:23,phase:"greybox",detail:"Saída fortificada da capital e marco de orientação."},
     {id:"entrada-vila",region:"vila-das-mares",name:"Entrada da Vila",kind:"road",
       x:35,z:-8,phase:"greybox",detail:"Chegada pela Estrada das Lanternas."},
