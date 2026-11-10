@@ -193,6 +193,8 @@
   disc("shore",55,1,24,m.sand,.04);
   disc("lake",55,1,21,m.water,.055);
   disc("inner lake",55,1,18,m.water2,.058);
+  // The center of the lake is not walkable; the pier and shoreline remain accessible.
+  obstacle(55,1,17);
   for(let i=0;i<16;i++){
     const a=i*Math.PI*2/16;
     const x=55+Math.cos(a)*24,z=1+Math.sin(a)*24;
