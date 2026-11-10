@@ -112,7 +112,8 @@ O terreno possui estradas e trilhas provisórias derivadas do manifesto; árvore
 - [x] Colisão da lagoa separada dos obstáculos em terra, com corredor caminhável sobre o píer.
 - [x] Atlas atualizado com locais construídos e Santuário da Mãe das Águas planejado e desabilitado.
 - [x] Dois NPCs de contexto: Dona Celina e Mestre Naval Taren.
-- [ ] Validar caminhadas completas de capital → vila → píer e entradas de todos os distritos em PC e celular.
+- [x] Caminhada **capital → Praça das Redes → píer e pesca** validada por Chromium automatizado em viewport desktop e móvel (GitHub Actions run 42906748689).
+- [ ] Confirmar as rotas em celulares físicos e conferir manualmente as entradas de todos os distritos.
 - [ ] Refazer águas e praias com material mais realista, sem adicionar obstáculos invisíveis.
 - [ ] Ajustar a escala, os terrenos, sombras e possíveis gargalos de câmera.
 - [ ] Adicionar interiores, viagens de barco e economia apenas depois de aprovar o mapa.
