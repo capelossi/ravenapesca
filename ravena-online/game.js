@@ -715,7 +715,8 @@
   let down=null;
   canvas.addEventListener("pointerdown",e=>down={x:e.clientX,y:e.clientY,t:performance.now()});
   canvas.addEventListener("pointerup",e=>{
-    if(!hero||dialogueOpen||!down)return;
+    if(!hero||dialogueOpen||!down||fishing)return;
+    if(e.pointerType==="mouse"&&e.button!==0){down=null;return;}
     const dist=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;
     if(dist>14)return;
     const hit=scene.pick(scene.pointerX,scene.pointerY,mesh=>!!mesh.metadata?.ground);
@@ -726,6 +727,7 @@
   let pinch=null;
   canvas.addEventListener("touchmove",e=>{
     if(e.touches.length===2){
+      down=null;
       const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
       if(pinch!==null)camera.radius=B.Scalar.Clamp(camera.radius+(pinch-d)*.04,18,48);
       pinch=d;
@@ -736,7 +738,8 @@
   engine.runRenderLoop(()=>{
     const now=performance.now(),dt=Math.min((now-lastTime)/1000||.016,.05);lastTime=now;pulse+=dt;
     if(hero){
-      if(path.length&&!dialogueOpen){
+      let didMove=false;
+      if(path.length&&!dialogueOpen&&!fishing){
         const next=path[0],dx=next.x-hero.position.x,dz=next.z-hero.position.z,d=Math.hypot(dx,dz);
         const speed=config.kind==="espadachim"?7.1:6.7;
         const step=Math.min(d,speed*dt);
@@ -745,12 +748,18 @@
           const xx=hero.position.x+dx/d*step,zz=hero.position.z+dz/d*step;
           if(!blocked(xx,zz,.12)){
             hero.position.x=xx;hero.position.z=zz;
+            didMove=true;
             const angle=Math.atan2(dx,dz);
             let delta=(angle-hero.rotation.y+3*Math.PI)%(2*Math.PI)-Math.PI;
             hero.rotation.y+=delta*Math.min(1,dt*9);
           }else {path=[];toast("Caminho obstruído.");}
         }
         if(!path.length){marker.setEnabled(false);markerInner.setEnabled(false);}
+      }
+      animateActor(hero,pulse,didMove);
+      if(fishing){
+        if(hero.metadata?.rig)hero.metadata.rig.arms[1].rotation.x=-.85;
+        if(now>=fishing.end)finishFishing();
       }
       const target=new B.Vector3(hero.position.x,1.6,hero.position.z);
       camera.target=B.Vector3.Lerp(camera.target,target,Math.min(1,dt*5));
@@ -760,6 +769,24 @@
       $("interaction").classList.toggle("hidden",!nearby||dialogueOpen);
       if(now-lastSave>12000){save();lastSave=now;}
     }else camera.target=B.Vector3.Lerp(camera.target,new B.Vector3(0,1.6,0),Math.min(1,dt*3));
+    for(const npc of interactables)animateActor(npc.root,pulse*.72+npc.x*.5,false);
+    for(const r of waterRipples){
+      const phase=pulse*.52+r.offset;
+      const scale=1+(phase%2.5)*.55;
+      r.mesh.scaling.set(scale,1,scale);
+      r.mesh.position.y=.12+Math.sin(phase*2)*.018;
+    }
+    for(const node of oreNodes){
+      if(node.cooldownUntil&&now>=node.cooldownUntil){
+        node.shards.forEach(mesh=>mesh.setEnabled(true));
+        node.cooldownUntil=0;
+      }
+    }
+    if(hero&&now-lastHudTick>500){
+      if(mp<100+Math.max(0,level-1)*10)
+        mp=Math.min(100+Math.max(0,level-1)*10,mp+1.25);
+      updateStats();lastHudTick=now;
+    }
     if(toastUntil&&now>toastUntil){$("toast").classList.add("hidden");toastUntil=0;}
     scene.render();
   });
