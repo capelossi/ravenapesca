@@ -4,6 +4,7 @@
   const canvas = $("world");
   const world = globalThis.RavenaWorldData;
   const layout = globalThis.RavenaMapLayout;
+  const village = globalThis.RavenaVillageLayout;
   if(!world || !Array.isArray(world.regions) || !world.story){
     $("create-error").textContent="Dados do mundo indisponíveis. Atualize a página para tentar novamente.";
     return;
@@ -122,6 +123,8 @@
   }
   function blocked(x,z,pad=.65) {
     if(!bounded(x,z))return true;
+    // A cidade portuária protege o lago e libera apenas o corredor físico do píer.
+    if(village.isLakeBlocked(x,z,pad))return true;
     for(const o of obstacles){
       if(o.kind==="box"){
         if(Math.abs(x-o.x)<o.halfW+pad && Math.abs(z-o.z)<o.halfD+pad)return true;
@@ -249,12 +252,7 @@
   house(-12,13,1.1,m.roofDark);
   house(12,13,.97);
   house(23,-8,.8,m.roofDark);
-  // Vila das Marés: pequena cidade vizinha, carregada junto com a Capital.
-  // Edifícios e bairros vêm do cadastro externo em world-data.js.
-  for(const building of world.settlements["vila-das-mares"].houses){
-    house(building.x,building.z,building.size,
-      building.roof==="blue"?m.roofDark:m.roof);
-  }
+  // A arquitetura da Vila das Marés é criada pelo módulo village-scene.js.
   for(let i=0;i<4;i++){
     box("castle wall",[-23+i*4.8,.9,28],[4.6,1.8,2.1],m.stone,true);
     box("castle wall",[8+i*4.8,.9,28],[4.6,1.8,2.1],m.stone,true);
@@ -287,37 +285,8 @@
     if(!onTrail(x,z,5))rock(x,z,.6+rnd()*1.3);
   }
   sign("FLORESTA DOS SUSSURROS",-41,-21,"#bfe2bf");
-  // Lake east: large flat water disks, docks, fishing spots.
-  disc("shore",55,1,24,m.sand,.04);
-  disc("lake",55,1,21,m.water,.055);
-  disc("inner lake",55,1,18,m.water2,.058);
-  // The center of the lake is not walkable; the pier and shoreline remain accessible.
-  obstacle(55,1,17);
-  for(let i=0;i<16;i++){
-    const a=i*Math.PI*2/16;
-    const x=55+Math.cos(a)*24,z=1+Math.sin(a)*24;
-    if(Math.abs(z)<7 && x<55)continue;
-    tree(x,z,.62+rnd()*.28);
-  }
-  for(let i=0;i<7;i++)box("dock plank",[31+i*1.6,.22,1],[1.5,.27,4.5],m.wood);
-  for(const x of [31,36,41]){
-    for(const z of [-1.8,1.8])cyl("pier post",[x,.65,z],.34,.34,1.3,m.trunk);
-  }
-  sign("VILA DAS MARÉS",35,-12,"#f5d49b");
-  sign("LAGO DA MÃE DAS ÁGUAS",43,16,"#a0d7e0");
-  // Farol das Marés, barcos e praça costeira: marcos visuais da cidade.
-  cyl("lighthouse stone tower",[48,3,24],3.7,4.7,6,m.stone,12);
-  cyl("lighthouse crown",[48,6.4,24],5.2,5.2,.9,m.roofDark,12);
-  cyl("lighthouse lantern",[48,7.15,24],2.4,2.4,.9,m.gold,10);
-  cyl("lighthouse roof",[48,8.05,24],.1,5.1,1.3,m.roof,10);
-  obstacle(48,24,2.5);
-  for(const [x,z] of [[47,-5],[48,6]]){
-    const hull=box("fishing boat hull",[x,.18,z],[2.6,.5,4.1],m.wood);
-    hull.rotation.y=.3;
-    cyl("fishing boat mast",[x,1.45,z],.14,.16,2.7,m.wood);
-    const sail=box("boat sail",[x+.55,1.55,z],[1.3,1.8,.08],m.white);
-    sail.rotation.y=.3;
-  }
+  // Lago, píer, casas, farol e barcos: ver village-layout.js/village-scene.js.
+  // A água tem colisões específicas, independentes da malha visual.
   // Forge and mountains south.
   for(let i=0;i<15;i++){
     const x=-40+rnd()*85,z=39+rnd()*23;
@@ -343,15 +312,7 @@
     }
     oreNodes.push({x,z,shards,cooldownUntil:0});
   }
-  // Animated concentric ripples above the lake's static water surface.
-  for(let i=0;i<6;i++){
-    const a=i*Math.PI/3;
-    const ripple=B.MeshBuilder.CreateTorus("water ripple",{diameter:1.5,thickness:.035,tessellation:24},scene);
-    ripple.position.set(55+Math.cos(a)*10,.12,1+Math.sin(a)*10);
-    ripple.material=m.water2;
-    ripple.isPickable=false;
-    waterRipples.push({mesh:ripple,offset:i*.7});
-  }
+  // Ondulações d'água são instanciadas pelo módulo da Vila e animadas pelo loop.
   // Roadside décor.
   for(const x of [-6,6,20,-20])for(const z of [-18,19]){
     cyl("lantern pole",[x,2,z],.2,.25,4,m.black);
@@ -383,9 +344,10 @@
   });
   for(const building of cityLayout.buildings)
     obstacleBox(building.x,building.z,building.width,building.depth);
-  const coastalMarket=world.settlements["vila-das-mares"].market;
-  marketStall(coastalMarket.x,coastalMarket.z,m.roofDark);
-  sign("MERCADO DO SAL",coastalMarket.x,coastalMarket.z-5,"#dce7c4");
+  const villageScene=globalThis.RavenaVillageScene.create({
+    B,scene,m,box,cyl,sphere,disc,roof,sign,tree,marketStall,
+    obstacle,obstacleBox,waterRipples,layout:village
+  });
   cyl("well rim",[0,.5,13],3.1,3.1,1,m.stone,12);
   cyl("well water",[0,1.03,13],2.45,2.45,.05,m.water,18);
   obstacle(0,13,1.85);
