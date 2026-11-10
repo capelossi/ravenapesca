@@ -40,12 +40,28 @@ try{
     await page.locator("#chronicle-panel:not(.hidden)").waitFor({state:"visible"});
     assert.match(await page.locator("#chronicle-content").innerText(),/Luz Sobre o Lago|A Luz Sobre o Lago/);
     await page.locator("#chronicle-close").click();
+    // Macro atlas: cities, POI states and on-foot movement, not teleportation.
+    await page.locator("#button-map").click();
+    await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
+    assert.equal(await page.locator(".atlas-poi-button").count(),15);
+    await page.locator('[data-place="praca-redes"]').click();
+    assert.equal(await page.locator("#atlas-place-name").innerText(),"Praça das Redes");
+    await page.locator('[data-place="pousada-vila"]').click();
+    assert.equal(await page.locator("#atlas-navigate").isDisabled(),true,
+      "Unbuilt destinations should not be navigable");
+    await page.locator('[data-place="praca-redes"]').click();
+    await page.locator("#atlas-navigate").click();
+    await page.locator("#world-map-panel.hidden").waitFor({state:"hidden",timeout:10000});
+    assert.match(await page.locator("#toast").innerText(),/Caminhando até.*Praça das Redes/);
+    await page.locator("#button-map").click();
+    await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
+    await page.locator("#world-map-close").click();
     await page.locator('[data-action="attack"]').click();
     const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null"));
     assert.equal(saved?.config?.name,"Testador");
     assert.ok(saved?.level>=1);
     assert.equal(errors.length,0,profile.name+": browser errors: "+errors.join(" | "));
-    console.log("PASS "+profile.name+" startup, HUD, quality, inventory, journal, attack and save");
+    console.log("PASS "+profile.name+" startup, atlas routes, HUD, quality, inventory, journal, attack and save");
     total++;
     await context.close();
   }
