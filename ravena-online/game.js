@@ -83,13 +83,12 @@
 
   const obstacles=[];
   const interactables=[];
-  const mobs=[];
   const oreNodes=[];
   const waterRipples=[];
   let hero=null, config=null, path=[], waypoint=null, nextInteraction=null, level=1,xp=0,hp=100,mp=100;
-  const emptyBag=()=>({ore:0,dagger:0,lambari:0,tilapia:0,carpa:0,lendario:0});
+  const emptyBag=()=>({ore:0,dagger:0,fur:0,essence:0,lambari:0,tilapia:0,carpa:0,lendario:0});
   let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
-  let totalFish=0,totalOre=0;
+  let totalFish=0,totalOre=0,targetUntil=0,lastEnemyHit=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
   const bounded=(x,z)=> Math.abs(x)<88 && Math.abs(z)<88;
   function obstacle(x,z,r){obstacles.push({x,z,r});}
@@ -427,18 +426,8 @@
     actorLabel(name,x,z);
   }
   for(const npc of world.npcs)addNPC(npc);
-  // Training enemies and their static HP.
-  function addMob(x,z) {
-    const root=new B.TransformNode("training golem",scene);root.position.set(x,0,z);
-    const torso=sphere("golem body",[0,1.1,0],1.75,m.darkStone);torso.parent=root;
-    const head=sphere("golem face",[0,2.3,0],.96,m.stone);head.parent=root;
-    for(const s of [-1,1]){
-      const limb=box("golem arm",[s*1.1,1.35,0],[.7,1.4,.75],m.darkStone);limb.parent=root;
-    }
-    mobs.push({x,z,root,hp:45,maxHp:45,alive:true});
-    obstacle(x,z,1.0);
-  }
-  addMob(-30,-10);addMob(-35,-3);addMob(33,39);
+  // A fauna hostil é um módulo independente do Babylon scene-building principal.
+  const enemies=globalThis.RavenaEnemies.create({B,scene,materials:m,world,combat});
   const marker=B.MeshBuilder.CreateTorus("destination",{diameter:1.6,thickness:.075,tessellation:36},scene);
   marker.rotation.x=Math.PI/2;marker.position.y=.13;marker.material=m.gold;marker.setEnabled(false);
   const markerInner=disc("destination sparkle",0,0,.19,m.lavender,.14);
@@ -461,26 +450,33 @@
     marker.setEnabled(true);markerInner.setEnabled(true);
     nextInteraction=null;
   }
-  const damageRange=()=>config?.kind==="mago"?7:config?.kind==="espadachim"?3.2:2.8;
+  const damageRange=()=>combat.classDefinition(config?.kind).range;
+  function showTarget(enemy){
+    $("combat-target").classList.remove("hidden");
+    $("target-name").textContent=enemy.label+" · Nv. "+enemy.level;
+    $("target-hp").textContent=enemy.hp+" / "+enemy.maxHp;
+    $("target-fill").style.width=(enemy.hp/enemy.maxHp*100)+"%";
+    targetUntil=performance.now()+2900;
+  }
   function strike(damage,range,title){
-    const nearest=mobs.filter(a=>a.alive).sort((a,b)=>Math.hypot(hero.position.x-a.x,hero.position.z-a.z)-Math.hypot(hero.position.x-b.x,hero.position.z-b.z))[0];
-    if(!nearest||Math.hypot(hero.position.x-nearest.x,hero.position.z-nearest.z)>range){
-      toast("Aproxime-se de um golem de treino.");return false;
-    }
-    nearest.hp-=damage;
-    if(nearest.hp<=0){
-      nearest.alive=false;nearest.root.setEnabled(false);
-      const i=obstacles.findIndex(o=>o.x===nearest.x&&o.z===nearest.z);
-      if(i>=0)obstacles.splice(i,1);
-      gainXP(35);toast(title+" Golem derrotado! +35 XP");
-    }else toast(title+" Golem: "+Math.max(0,nearest.hp)+" HP.");
+    const result=enemies.hit(hero.position.x,hero.position.z,range,damage,performance.now());
+    if(!result.ok){toast(result.reason);return false;}
+    enemies.ring(result.enemy.x,result.enemy.z,
+      config.kind==="mago"?m.lavender:m.gold,performance.now(),460);
+    showTarget(result.enemy);
+    if(result.killed){
+      if(result.reward)addItem(result.reward.key,result.reward.count);
+      gainXP(result.xp);
+      toast(title+" "+result.enemy.label+" derrotado! +"+result.xp+" XP"+
+        (result.reward?" · Item coletado":""));
+    }else toast(title+" "+result.enemy.label+": "+result.enemy.hp+" HP.");
     return true;
   }
   function attack(){
     if(!hero||dialogueOpen||fishing)return;
     const now=performance.now();
     if(now-lastAttackAt<650)return;
-    if(strike(config.kind==="espadachim"?23:config.kind==="mago"?20:13,damageRange(),"Ataque!"))
+    if(strike(combat.classDefinition(config.kind).basic,damageRange(),"Ataque!"))
       lastAttackAt=now;
   }
   function special(){
@@ -489,7 +485,8 @@
     if(now-lastSpecialAt<2800){toast("Habilidade em recarga.");return;}
     if(mp<20){toast("Você precisa de 20 pontos de energia.");return;}
     const title={mago:"Explosão Arcana!",espadachim:"Corte Veloz!",forjador:"Golpe de Martelo!"}[config.kind];
-    if(strike(config.kind==="mago"?29:25,config.kind==="mago"?9:4,title)){
+    const skill=combat.classDefinition(config.kind);
+    if(strike(skill.special,skill.specialRange,title)){
       mp-=20;lastSpecialAt=now;updateStats();save();
     }
   }
@@ -516,6 +513,7 @@
   }
   const bagCatalog=[
     ["ore","⛏","Minério bruto"],["dagger","⚔","Adaga forjada"],
+    ["fur","🐾","Couro de lobo"],["essence","✧","Essência do Véu"],
     ["lambari","🐟","Lambari"],["tilapia","🐟","Tilápia"],
     ["carpa","🐠","Carpa"],["lendario","✦","Peixe lendário"]
   ];
