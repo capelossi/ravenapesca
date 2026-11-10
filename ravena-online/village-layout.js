@@ -34,8 +34,9 @@
       {x:34,z:15},{x:40,z:22},{x:39,z:-24}
     ],
     boats:[
-      {x:46,z:-5,rotation:.33},
-      {x:47.8,z:8,rotation:-.42}
+      // Barcos afastados das pessoas no cais para evitar mastros sobre a câmera.
+      {x:56,z:-9,rotation:.33},
+      {x:60,z:9,rotation:-.42}
     ],
     dockPosts:[31,35,39,43],
     decorations:{
