@@ -37,15 +37,9 @@ globalThis.RavenaWorldData = Object.freeze({
         { id:"mercado", name:"Mercado do Sal", x:27, z:-27, activity:"Comércio de peixes e suprimentos" },
         { id:"farol", name:"Farol das Marés", x:48, z:24, activity:"Segredos e expedições futuras" }
       ],
-      houses: [
-        { x: 30, z: -21, size: .77, roof:"blue" },
-        { x: 40, z: -24, size: .73, roof:"red" },
-        { x: 49, z: -25, size: .67, roof:"blue" },
-        { x: 29, z: 18, size: .75, roof:"red" },
-        { x: 45, z: 23, size: .74, roof:"blue" },
-        { x: 47, z: 29, size: .67, roof:"red" }
-      ],
-      market: { x: 27, z:-26 }
+      // Planta 3D: village-layout.js / village-scene.js.
+      // Sem cadastro de casas duplicado; IDs permanecem estáveis entre camadas.
+      architecture:{layout:"village-layout.js",renderer:"village-scene.js"}
     }
   },
   npcs: [
@@ -76,6 +70,14 @@ globalThis.RavenaWorldData = Object.freeze({
     {
       id:"mercadora-naila", name:"Mercadora Naila", x:30, z:-28, kind:"forjador",
       story:"O Mercado do Sal recebe peixes, ferramentas e mercadorias de Azarath. Quando a economia online estiver pronta, comerciantes e aventureiros poderão negociar aqui. Por enquanto, visite a mochila para conferir seus recursos."
+    },
+    {
+      id:"dona-celina", name:"Dona Celina", x:47,z:-22,kind:"forjador",
+      story:"A Pousada do Faroleiro recebe viajantes e caravanas entre Azarath e a Vila das Marés. Quando os interiores estiverem prontos, haverá hospedagem e encontros de guildas; por enquanto, visite as fachadas no Atlas."
+    },
+    {
+      id:"mestre-naval", name:"Mestre Naval Taren", x:32,z:22,kind:"forjador",
+      story:"Nós construímos barcos, remendamos redes e mantemos o farol. A Oficina Naval será uma profissão e um ponto de fabricação. O cais continuará aberto para pesca, mas esta cidade tem muito mais a oferecer."
     },
     {
       id:"mestre-ferreiro", name:"Mestre Ferreiro", x:3, z:46, kind:"forjador",
