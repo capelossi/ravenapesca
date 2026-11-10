@@ -76,6 +76,10 @@
   ground.isPickable=true;
   ground.metadata={ground:true};
   ground.receiveShadows=true;
+  const visuals=globalThis.RavenaVisuals.create({
+    B,scene,engine,ground,sun,dir,shadows,materials:m
+  });
+  const combat=globalThis.RavenaCombat;
 
   const obstacles=[];
   const interactables=[];
@@ -648,6 +652,30 @@
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
   $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · E: conversar · J: crônicas · 1: atacar · 2: especial · 3: mochila · 4: forjar/minerar · 5: pescar",7));
+  function qualityUI(){
+    const descriptions={
+      leve:"Leve: resolução reduzida, sem sombras complexas ou brilho.",
+      equilibrado:"Alta: sombras suaves, boa definição e renderização equilibrada.",
+      ultra:"Ultra: definição máxima, sombras e brilho mágico adicional."
+    };
+    for(const button of document.querySelectorAll("[data-quality]")){
+      const active=button.dataset.quality===visuals.quality;
+      button.classList.toggle("selected",active);
+      button.setAttribute("aria-pressed",String(active));
+    }
+    $("graphics-description").textContent=descriptions[visuals.quality];
+  }
+  qualityUI();
+  document.querySelectorAll("[data-quality]").forEach(button=>button.addEventListener("click",()=>{
+    visuals.apply(button.dataset.quality);qualityUI();
+    toast("Qualidade: "+button.textContent.trim(),2);
+  }));
+  $("button-settings").addEventListener("click",()=>{
+    const panel=$("settings-panel");panel.classList.toggle("hidden");
+    if(!panel.classList.contains("hidden")){toggleBag(false);globalThis.RavenaJournal?.close();}
+    qualityUI();
+  });
+  $("settings-close").addEventListener("click",()=>$("settings-panel").classList.add("hidden"));
   $("button-journal").addEventListener("click",()=>{
     toggleBag(false);
     globalThis.RavenaJournal?.toggle(quest,currentZone);
@@ -739,7 +767,7 @@
     }
     if(e.key==="4")forgeAction();
     if(e.key==="5")fishAction();
-    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();}
+    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();$("settings-panel").classList.add("hidden");}
   });
   // Pointer only moves on a ground hit; picking characters can never teleport the player.
   let down=null;
@@ -767,6 +795,11 @@
   // Continuous movement with per-frame time, obstacle safety and smooth camera.
   engine.runRenderLoop(()=>{
     const now=performance.now(),dt=Math.min((now-lastTime)/1000||.016,.05);lastTime=now;pulse+=dt;
+    visuals.tick(dt);
+    if(now-lastMove>1800){
+      $("graphics-fps").textContent=Math.round(engine.getFps())+" FPS · "+visuals.quality.toUpperCase();
+      lastMove=now;
+    }
     if(hero){
       let didMove=false;
       if(path.length&&!dialogueOpen&&!fishing){
