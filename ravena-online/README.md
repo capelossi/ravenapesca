@@ -27,6 +27,7 @@
 - Rotas físicas alinhadas ao Atlas, com passagens livres nas trilhas e Portão Sul com abertura real.
 - Movimento com tempo proporcional ao FPS e colisão verificada em subpassos, para reduzir a lentidão em dispositivos mais fracos.
 - Aproximadamente 495 pequenas pedras do calçamento são agrupadas por material em duas malhas estáticas quando suportado, reduzindo draw calls.
+- **Ajustes visuais para Android (Fase 1.3.1):** minimapa compacto com abertura direta do Atlas; barra de vida e botões inferiores sem sobreposição; placas 3D exibidas somente por proximidade; diálogo de NPC por botão tocável; lago de cor azul-esverdeada mais escura, ondas procedurais e detalhes discretos de margem. Os barcos foram afastados do cais para não ficar com mastros sobre o personagem.
 - **Vila das Marés redesenhada (Fase 1.3):** prefeitura, pousada, armazém, oficina naval, bairro dos pescadores, praça, duas bancas no mercado, farol, barcos e cais, com arquivos separados para planta e renderização. Lago possui colisão própria: o jogador pode caminhar pelo píer, mas não pelo fundo da água. O Santuário da Mãe das Águas fica reservado no Atlas (ainda não construído).
 - **Capital redesenhada (Fase 1.2):** prédios individuais de Guilda dos Aventureiros, Palácio do Conselho e Estalagem Corvo Dourado, com praças, bancas, avenidas, iluminação, acesso identificado e colisões retangulares na arquitetura nova. Os interiores ainda não estão disponíveis.
 - Onze NPCs e **Capítulo I — A Luz Sobre o Lago** com nove etapas, diálogos, exploração e dois caminhos possíveis para obter informações sem exigir pesca ou forja.
@@ -45,12 +46,12 @@
 | --- | --- |
 | Andar | Clique ou toque no chão |
 | Zoom | Roda do mouse / gesto de pinça |
-| Falar com NPC próximo | E |
+| Falar com NPC próximo | E no PC ou botão **Conversar** na tela |
 | Atacar inimigo próximo | 1 ou ícone de espada |
 | Habilidade especial (gasta energia) | 2 ou ícone de brilho |
 | Mochila | 3 ou I, ou ícone de mochila |
 | Diário de Crônicas | J ou botão Crônicas |
-| Atlas do Reino | M ou botão Mapa |
+| Atlas do Reino | M, botão Mapa ou ícone de ampliar no minimapa |
 | Selecionar destino no Atlas | Escolha um marco e clique em Traçar caminho a pé |
 | Minerar e forjar | 4, perto de cristais ou da oficina |
 | Pescar | 5, no píer do lago |
