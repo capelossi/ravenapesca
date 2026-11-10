@@ -27,3 +27,23 @@
 .appearance-option{background:#18202c;color:#d5ccbb;border:1px solid #605c64;padding:8px 12px;border-radius:6px;font:12px system-ui,sans-serif;min-height:36px}
 .appearance-option.selected{border-color:#d8ac68;color:#f8deab;background:linear-gradient(125deg,#573f32,#34303c)}
 .appearance-option:hover{border-color:#e6bd71}
+
+/* Diário modular — leitura de enredo sem interromper a exploração. */
+.chronicle-panel{position:absolute;z-index:12;right:20px;top:75px;bottom:110px;width:min(400px,calc(100vw - 32px));padding:18px;overflow-y:auto;pointer-events:auto;background:rgba(12,19,29,.97);scrollbar-width:thin;scrollbar-color:#9c7a52 #15202b}
+.chronicle-header{display:flex;justify-content:space-between;align-items:start;gap:12px;padding-bottom:11px;border-bottom:1px solid #725b44}
+.chronicle-header h2{font-size:24px;margin:5px 0 0;color:#f0d09c}
+.chronicle-header button{border:1px solid #8c7250;color:#f6d7a4;border-radius:6px;width:32px;height:32px;background:#242735;font-size:22px}
+.chronicle-eyebrow{font:10px system-ui,sans-serif;letter-spacing:2px;color:#c49d5f}
+.chronicle-section{margin-top:18px;padding-top:9px;border-top:1px solid rgba(197,167,116,.2)}
+.chronicle-section-title{font-size:16px;color:#f0c995;margin:0 0 12px}
+.chronicle-lead{font:13px/1.65 Georgia,serif;color:#d3c7b2}
+.chronicle-status{margin:11px 0;color:#caad7b;text-transform:uppercase;font:10px system-ui,sans-serif;letter-spacing:1.5px}
+.chronicle-objective{font-size:14px;color:#e6d2b3;margin:10px 0 4px}
+.chronicle-copy{font:12px/1.65 system-ui,sans-serif;color:#afb8b9;margin:0 0 9px}
+.chronicle-route{color:#c5a878;font:11px/1.5 system-ui,sans-serif}
+.chronicle-progress{height:8px;border:1px solid #725d46;background:#1c252d;border-radius:4px;overflow:hidden;margin-top:12px}
+.chronicle-progress-fill{height:100%;display:block;background:linear-gradient(90deg,#9c7d4e,#eed09a);transition:width .2s}
+.chronicle-step{font:12px/1.5 system-ui,sans-serif;padding:6px 0}
+.chronicle-step.done{color:#8fc79e}.chronicle-step.active{color:#f2d18e;font-weight:bold}.chronicle-step.future{color:#687a7e}
+.chronicle-future{font:12px/1.6 system-ui,sans-serif;color:#b6a382;padding:3px 0}
+@media(max-width:750px){.chronicle-panel{top:58px;right:7px;bottom:125px;width:min(350px,calc(100vw - 14px));padding:13px}.chronicle-header h2{font-size:21px}}
