@@ -639,7 +639,9 @@
   // Não depende da profissão nem da ordem em que o jogador visita as cidades.
   function advanceStory(trigger){
     const stage=world.story.stages[quest];
-    if(!stage||stage.trigger!==trigger)return false;
+    if(!stage)return false;
+    const triggers=Array.isArray(stage.trigger)?stage.trigger:[stage.trigger];
+    if(!triggers.includes(trigger))return false;
     quest++;
     gainXP(stage.xp);
     updateQuest();
