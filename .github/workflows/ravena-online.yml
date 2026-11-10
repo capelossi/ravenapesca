@@ -1,0 +1,23 @@
+name: Ravena Online - static alpha checks
+
+on:
+  pull_request:
+    paths:
+      - "ravena-online/**"
+      - ".github/workflows/ravena-online.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check game syntax and UI contracts
+        run: node ravena-online/check.mjs
