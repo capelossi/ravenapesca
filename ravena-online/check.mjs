@@ -13,14 +13,18 @@ const css=readFileSync(join(dir,"style.css"),"utf8");
 const game=readFileSync(join(dir,"game.js"),"utf8");
 const worldSource=readFileSync(join(dir,"world-data.js"),"utf8");
 const chronicles=readFileSync(join(dir,"ui-chronicles.js"),"utf8");
+const navigation=readFileSync(join(dir,"navigation.js"),"utf8");
 
-for(const source of ["game.js","world-data.js","ui-chronicles.js"]){
+for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
 const scope={};
 runInNewContext(worldSource,{globalThis:scope});
 const world=scope.RavenaWorldData;
 assert.ok(world,"World registry must be loaded");
+runInNewContext(navigation,{globalThis:scope});
+const nav=scope.RavenaNavigation;
+assert.ok(nav && typeof nav.findPath==="function","Reusable navigation module missing");
 
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 const referenced=[...game.matchAll(/\$\("([^"]+)"\)/g)].map(match=>match[1]);
@@ -51,6 +55,10 @@ assert.ok(html.includes('<script src="world-data.js"></script>'),"World manifest
 assert.ok(html.indexOf('src="world-data.js"')<html.indexOf('src="game.js"'),
   "World manifest must load before the game");
 assert.ok(html.includes('<script src="ui-chronicles.js"></script>'),"Journal module missing");
+assert.ok(html.includes('<script src="navigation.js"></script>'),"Navigation module missing");
+assert.ok(html.indexOf('src="navigation.js"')<html.indexOf('src="game.js"'),
+  "Navigation must load before game");
+assert.ok(game.includes("RavenaNavigation.findPath"),"Game must use modular pathfinding");
 assert.ok(css.includes(".chronicle-panel"),"Journal styles missing");
 assert.ok(game.includes("for(const npc of world.npcs)"),"NPCs must be data-driven");
 assert.ok(game.includes("world.settlements"),"Village buildings must be data-driven");
@@ -108,5 +116,22 @@ assert.equal(simulate([...prefix,"talk:faroleira-iara","enter:montanhas-da-forja
   "talk:mestre-ferreiro","talk:mestre-ferreiro","talk:capita-elyra"]),
   world.story.stages.length,"Alternative route should finish without fishing/crafting");
 assert.ok(chronicles.includes("story.stages"),"Journal must read chapter data");
+const clear=nav.findPath({x:0,z:0},{x:14,z:0},()=>false);
+assert.ok(clear.length>0,"Path to open terrain must exist");
+const isBlocked=(x,z,pad=0)=>Math.hypot(x-6,z)<3+pad;
+const detour=nav.findPath({x:0,z:0},{x:14,z:0},isBlocked);
+assert.ok(detour.length>1,"Pathfinder must detour around rocks");
+let from={x:0,z:0};
+for(const to of detour){
+  const distance=Math.hypot(to.x-from.x,to.z-from.z);
+  for(let n=0;n<=Math.ceil(distance/.2);n++){
+    const t=n/Math.max(1,Math.ceil(distance/.2));
+    assert.ok(!isBlocked(from.x+(to.x-from.x)*t,from.z+(to.z-from.z)*t,.15),
+      "A smoothed path must not cut through rock obstacles");
+  }
+  from=to;
+}
+assert.ok(!detour.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z)),
+  "Paths must be finite coordinates");
 
 console.log("Ravena Online: world registry, narrative, navigation contract and UI checks passed.");
