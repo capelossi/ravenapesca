@@ -221,11 +221,10 @@
   scatterRoad(35,-11,8,24,85);
   scatterRoad(38,-21,26,7,75);
   // Town is central, forest to west, lake to east, forge to south.
-  house(-11,-13,1.1);
-  house(13,-12,.96,m.roofDark);
+  // Três casas genéricas foram substituídas por edifícios nomeados da Capital.
+  // Mantemos os bairros residenciais menores até o refinamento de interiores.
   house(-12,13,1.1,m.roofDark);
   house(12,13,.97);
-  house(-23,6,.8);
   house(23,-8,.8,m.roofDark);
   // Vila das Marés: pequena cidade vizinha, carregada junto com a Capital.
   // Edifícios e bairros vêm do cadastro externo em world-data.js.
@@ -353,8 +352,14 @@
       j%2?m.gold:m.leaves2);
     obstacle(x,z,1.65);
   }
-  marketStall(-19,-16,m.red);
-  marketStall(19,15,m.roofDark);
+  // Módulo de arquitetura da Capital: separado do mundo, do personagem e do RPG.
+  // Layout, acessos e edificações podem mudar sem reescrever o motor de gameplay.
+  const cityLayout=globalThis.RavenaCapitalLayout;
+  const capitalScene=globalThis.RavenaCapitalScene.create({
+    B,scene,m,box,cyl,sphere,roof,sign,marketStall,layout:cityLayout
+  });
+  for(const building of cityLayout.buildings)
+    obstacle(building.x,building.z,Math.max(building.width,building.depth)*.52);
   const coastalMarket=world.settlements["vila-das-mares"].market;
   marketStall(coastalMarket.x,coastalMarket.z,m.roofDark);
   sign("MERCADO DO SAL",coastalMarket.x,coastalMarket.z-5,"#dce7c4");
