@@ -75,7 +75,18 @@
           <button class="class" data-class="espadachim"><span>⚔</span><b>Espadachim</b><small>Combate e defesa</small></button>
           <button class="class" data-class="forjador"><span>⚒</span><b>Forjador</b><small>Ofícios e armas</small></button>
         </div>
-        <label>Aparência</label><div class="appearance"><button class="tone selected" data-tone="0" aria-label="Tom de pele 1" style="--swatch:#f4c9a0"></button><button class="tone" data-tone="1" aria-label="Tom de pele 2" style="--swatch:#b98256"></button><button class="tone" data-tone="2" aria-label="Tom de pele 3" style="--swatch:#71442f"></button><div class="app-sep"></div><button class="hair selected" data-hair="0" aria-label="Cabelo vinho" style="--swatch:#6f304b"></button><button class="hair" data-hair="1" aria-label="Cabelo castanho" style="--swatch:#4d3023"></button><button class="hair" data-hair="2" aria-label="Cabelo loiro" style="--swatch:#d8ad57"></button></div>
+        <label>Corpo do personagem</label>
+        <div class="character-options" id="body-options" role="group" aria-label="Tipo de corpo">
+          <button type="button" class="appearance-option selected" data-body="feminino">Feminino</button>
+          <button type="button" class="appearance-option" data-body="masculino">Masculino</button>
+        </div>
+        <label>Estilo do cabelo</label>
+        <div class="character-options" id="hair-style-options" role="group" aria-label="Estilo do cabelo">
+          <button type="button" class="appearance-option selected" data-style="longo">Longo</button>
+          <button type="button" class="appearance-option" data-style="curto">Curto</button>
+          <button type="button" class="appearance-option" data-style="trancas">Tranças</button>
+        </div>
+        <label>Cores de pele e cabelo</label><div class="appearance"><button class="tone selected" data-tone="0" aria-label="Tom de pele 1" style="--swatch:#f4c9a0"></button><button class="tone" data-tone="1" aria-label="Tom de pele 2" style="--swatch:#b98256"></button><button class="tone" data-tone="2" aria-label="Tom de pele 3" style="--swatch:#71442f"></button><div class="app-sep"></div><button class="hair selected" data-hair="0" aria-label="Cabelo vinho" style="--swatch:#6f304b"></button><button class="hair" data-hair="1" aria-label="Cabelo castanho" style="--swatch:#4d3023"></button><button class="hair" data-hair="2" aria-label="Cabelo loiro" style="--swatch:#d8ad57"></button></div>
         <button id="start" class="start">ENTRAR EM AZARATH <span>↗</span></button><div id="create-error" aria-live="polite"></div>
         <p class="legal">Protótipo offline: o personagem é salvo apenas neste navegador. Multiplayer, comércio e contas serão desenvolvidos no servidor.</p>
       </div>
