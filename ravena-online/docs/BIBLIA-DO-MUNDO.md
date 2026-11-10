@@ -6,7 +6,7 @@
 ## 1. Fantasia do jogador
 O jogador chega como um aventureiro sem renome em Azarath e escolhe como construir sua história: luta, magia, artesanato, exploração, pesca, comércio ou relações com outros aventureiros. O mundo não é estruturado em torno da pescaria. Ela é uma profissão importante e uma das atividades de uma cidade vizinha.
 
-**Regra:** nenhuma classe precisa pescar para ser competitiva; a missão tutorial de captura é um encontro opcionalmente substituível por outras provas na versão definitiva. Na pré-alfa, o Capítulo I ainda exige a captura de um peixe como demonstração de mecânica.
+**Regra:** nenhuma classe precisa pescar para ser competitiva. Já na pré-alfa, a missão tutorial da vila pode ser resolvida pescando no píer ou investigando o farol com a Faroleira Iara. A forja também oferece um caminho de diálogo para quem não quer minerar ou fabricar.
 
 **Tom:** fantasia medieval misteriosa e luminosa, contrastando cidades acolhedoras, ruínas sombrias e magia ancestral. Violência estilizada, sem violência gráfica explícita.
 
@@ -60,13 +60,13 @@ Gatilhos administrados por `world-data.js`, identificados por ID estável e sem 
 2. Atravessar a estrada e chegar à Vila das Marés.
 3. Conhecer Prefeita Marina na Praça das Redes.
 4. Falar com Orien no cais.
-5. Capturar um peixe.
+5. Capturar um peixe **ou** conversar com a Faroleira Iara perto do farol.
 6. Viajar até as Montanhas da Forja.
-7. Minerar um veio de cristal.
-8. Forjar uma adaga.
+7. Minerar um veio de cristal **ou** pedir ao Mestre Ferreiro sua análise.
+8. Forjar uma adaga **ou** conversar novamente com o Mestre Ferreiro.
 9. Voltar a Elyra e encerrar o capítulo.
 
-**Correção futura importante:** dar três alternativas equivalentes à etapa 5 (pescar, investigar o farol ou defender o mercado). A história deve incentivar a explorar a vila, mas não impor pescaria como profissão.
+**Melhoria futura:** acrescentar defesa do mercado como terceira alternativa à etapa 5 e expandir as consequências dos caminhos escolhidos. A pré-alfa já oferece rota sem pescaria e sem forja obrigatória.
 
 ## 6. Classes, especializações e ofícios
 - **Mago** — dano mágico, controle, suporte; futura especialização elemental/arcana.
