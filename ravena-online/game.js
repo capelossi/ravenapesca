@@ -2,6 +2,11 @@
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $("world");
+  const world = globalThis.RavenaWorldData;
+  if(!world || !Array.isArray(world.regions) || !world.story){
+    $("create-error").textContent="Dados do mundo indisponíveis. Atualize a página para tentar novamente.";
+    return;
+  }
   if (!window.BABYLON) {
     $("create-error").textContent = "Não foi possível carregar o motor 3D. Confira sua conexão e atualize a página.";
     return;
@@ -167,6 +172,12 @@
   road(31,16,9,35);
   scatterRoad(0,0,17,39,205);
   scatterRoad(0,0,40,11,130);
+  // Estrada das Lanternas: ligação a pé entre a Capital e a cidade portuária.
+  road(35,-11,8,24);
+  road(38,-21,26,7);
+  road(33,15,8,28);
+  scatterRoad(35,-11,8,24,85);
+  scatterRoad(38,-21,26,7,75);
   // Town is central, forest to west, lake to east, forge to south.
   house(-11,-13,1.1);
   house(13,-12,.96,m.roofDark);
@@ -174,6 +185,12 @@
   house(12,13,.97);
   house(-23,6,.8);
   house(23,-8,.8,m.roofDark);
+  // Vila das Marés: pequena cidade vizinha, carregada junto com a Capital.
+  // Edifícios e bairros vêm do cadastro externo em world-data.js.
+  for(const building of world.settlements["vila-das-mares"].houses){
+    house(building.x,building.z,building.size,
+      building.roof==="blue"?m.roofDark:m.roof);
+  }
   for(let i=0;i<4;i++){
     box("castle wall",[-23+i*4.8,.9,28],[4.6,1.8,2.1],m.stone,true);
     box("castle wall",[8+i*4.8,.9,28],[4.6,1.8,2.1],m.stone,true);
@@ -215,7 +232,21 @@
   for(const x of [31,36,41]){
     for(const z of [-1.8,1.8])cyl("pier post",[x,.65,z],.34,.34,1.3,m.trunk);
   }
-  sign("LAGO DA MÃE DAS ÁGUAS",39,-14,"#a0d7e0");
+  sign("VILA DAS MARÉS",35,-12,"#f5d49b");
+  sign("LAGO DA MÃE DAS ÁGUAS",43,16,"#a0d7e0");
+  // Farol das Marés, barcos e praça costeira: marcos visuais da cidade.
+  cyl("lighthouse stone tower",[48,3,24],3.7,4.7,6,m.stone,12);
+  cyl("lighthouse crown",[48,6.4,24],5.2,5.2,.9,m.roofDark,12);
+  cyl("lighthouse lantern",[48,7.15,24],2.4,2.4,.9,m.gold,10);
+  cyl("lighthouse roof",[48,8.05,24],.1,5.1,1.3,m.roof,10);
+  obstacle(48,24,2.5);
+  for(const [x,z] of [[47,-5],[48,6]]){
+    const hull=box("fishing boat hull",[x,.18,z],[2.6,.5,4.1],m.wood);
+    hull.rotation.y=.3;
+    cyl("fishing boat mast",[x,1.45,z],.14,.16,2.7,m.wood);
+    const sail=box("boat sail",[x+.55,1.55,z],[1.3,1.8,.08],m.white);
+    sail.rotation.y=.3;
+  }
   // Forge and mountains south.
   for(let i=0;i<15;i++){
     const x=-40+rnd()*85,z=39+rnd()*23;
@@ -275,6 +306,9 @@
   }
   marketStall(-19,-16,m.red);
   marketStall(19,15,m.roofDark);
+  const coastalMarket=world.settlements["vila-das-mares"].market;
+  marketStall(coastalMarket.x,coastalMarket.z,m.roofDark);
+  sign("MERCADO DO SAL",coastalMarket.x,coastalMarket.z-5,"#dce7c4");
   cyl("well rim",[0,.5,13],3.1,3.1,1,m.stone,12);
   cyl("well water",[0,1.03,13],2.45,2.45,.05,m.water,18);
   obstacle(0,13,1.85);
@@ -388,10 +422,8 @@
     interactables.push({name,x,z,root,story,give});
     actorLabel(name,x,z);
   }
-  addNPC("Capitã Elyra",-5,-7,"Bem-vindo a Azarath, aventureiro! Siga as estradas: a oeste ficam as florestas, a leste está o lago e ao sul, a forja. O destino do reino será escrito por suas escolhas.","espadachim",20);
-  addNPC("Mestre Ferreiro",3,46,"A forja já está ativa neste protótipo! Pressione 4 junto dos cristais para minerar; depois leve 3 minérios às brasas da oficina e pressione 4 novamente. Forjadores criam duas adagas por lote.","forjador",15);
-  addNPC("Pescador Orien",33,1,"No píer, pressione 5 para lançar a linha e aguarde o peixe fisgar. O peixe que você pescar será guardado na mochila (tecla 3). Existem espécies comuns e lendárias!","mago",15);
-  addNPC("Guardião da Floresta",-38,-22,"As criaturas das árvores mudam com a luz. Ainda estamos construindo as missões de caça, coleta e os grandes chefes destas terras.","mago",15);
+  for(const npc of world.npcs)
+    addNPC(npc.name,npc.x,npc.z,npc.story,npc.kind,0);
   // Training enemies and their static HP.
   function addMob(x,z) {
     const root=new B.TransformNode("training golem",scene);root.position.set(x,0,z);
