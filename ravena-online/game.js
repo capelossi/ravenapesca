@@ -441,57 +441,11 @@
   const markerInner=disc("destination sparkle",0,0,.19,m.lavender,.14);
   markerInner.setEnabled(false);
 
-  // Grid A* path search: collision-aware pathing for click-to-move.
-  const CELL=2;
-  const toCell=v=>Math.round(v/CELL);
-  const key=(x,z)=>x+","+z;
+  // Serviço de navegação intercambiável: no futuro será substituído por NavMesh.
   function route(start,end){
-    let sx=toCell(start.x),sz=toCell(start.z),tx=toCell(end.x),tz=toCell(end.z);
-    if(blocked(tx*CELL,tz*CELL,.4)){
-      let found=null;
-      for(let r=1;r<=7&&!found;r++){
-        for(let dx=-r;dx<=r&&!found;dx++)for(let dz=-r;dz<=r&&!found;dz++){
-          const x=(tx+dx)*CELL,z=(tz+dz)*CELL;
-          if(!blocked(x,z,.4)){found={x:tx+dx,z:tz+dz};}
-        }
-      }
-      if(!found)return [];
-      tx=found.x;tz=found.z;
-    }
-    const opens=[{x:sx,z:sz,g:0,f:0}];const visited=new Map();const cost=new Map([[key(sx,sz),0]]);
-    let endpoint=null,iter=0;
-    while(opens.length&&iter++<9500){
-      let best=0;for(let i=1;i<opens.length;i++)if(opens[i].f<opens[best].f)best=i;
-      const n=opens.splice(best,1)[0],k=key(n.x,n.z);
-      if(visited.has(k))continue;visited.set(k,n);
-      if(n.x===tx&&n.z===tz){endpoint=n;break;}
-      for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){
-        const nx=n.x+dx,nz=n.z+dz,nk=key(nx,nz);
-        if(Math.abs(nx)>43||Math.abs(nz)>43||visited.has(nk)||blocked(nx*CELL,nz*CELL,.25))continue;
-        if(dx&&dz&&(blocked((n.x+dx)*CELL,n.z*CELL,.25)||blocked(n.x*CELL,(n.z+dz)*CELL,.25)))continue;
-        const ng=n.g+(dx&&dz?1.414:1);if(ng>=(cost.get(nk)??1e9))continue;
-        cost.set(nk,ng);
-        opens.push({x:nx,z:nz,g:ng,f:ng+Math.hypot(tx-nx,tz-nz),parent:k});
-      }
-    }
-    if(!endpoint)return [];
-    const points=[];
-    for(let n=endpoint;n;n=n.parent?visited.get(n.parent):null)points.push(new B.Vector3(n.x*CELL,0,n.z*CELL));
-    points.reverse();if(points.length>1)points.shift();
-    // Smooth only when straight segments are obstacle-free.
-    function clear(a,b){
-      const len=B.Vector3.Distance(a,b),steps=Math.ceil(len/.5);
-      for(let i=1;i<steps;i++){const t=i/steps;if(blocked(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,.25))return false;}
-      return true;
-    }
-    const smooth=[];let anchor=new B.Vector3(start.x,0,start.z);
-    for(let i=0;i<points.length;){
-      let far=i;
-      for(let j=i+1;j<Math.min(points.length,i+10);j++)if(clear(anchor,points[j]))far=j;
-      smooth.push(points[far]);anchor=points[far];i=far+1;
-    }
-    if(clear(anchor,end)&&!blocked(end.x,end.z,.4))smooth.push(new B.Vector3(end.x,0,end.z));
-    return smooth;
+    return globalThis.RavenaNavigation.findPath(
+      {x:start.x,z:start.z},{x:end.x,z:end.z},blocked
+    ).map(p=>new B.Vector3(p.x,0,p.z));
   }
   function goto(x,z){
     if(!hero||dialogueOpen||fishing)return;
