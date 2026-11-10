@@ -52,3 +52,25 @@
 .map-lake{left:66%;top:44%;color:#9cdeec}
 .map-forge{left:51%;top:76%}
 .map-forest{left:26%;top:29%}
+
+/* Graphics profiles, FPS and combat indication: optional overlays. */
+.status-graphics{font:600 11px system-ui,sans-serif;color:#b6debc;letter-spacing:.4px;white-space:nowrap}
+.settings-panel{position:absolute;z-index:13;right:22px;bottom:103px;width:min(350px,calc(100vw - 24px));pointer-events:auto;padding:18px;background:rgba(12,19,30,.96)}
+.settings-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.settings-header h2{font-size:19px;margin:0;color:#f1d5a4}
+.settings-header button{background:#282d35;color:#f9d7a1;border:1px solid #987452;border-radius:6px;font-size:22px;width:34px;height:34px}
+.settings-panel>p{font:12px/1.65 system-ui,sans-serif;color:#c0b9ad}
+.settings-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.settings-presets button{border:1px solid #77715f;background:#262c3a;color:#e6dfd1;padding:10px 4px;border-radius:7px;font:13px system-ui,sans-serif;min-height:44px}
+.settings-presets button.selected{background:linear-gradient(145deg,#745938,#493e2d);color:#fce3ad;border-color:#f3c780}
+.settings-presets button:hover{border-color:#ffe2b3}
+.settings-panel .settings-note{font-size:11px;color:#99a6a8}
+.combat-target{position:absolute;left:50%;top:80px;transform:translateX(-50%);min-width:205px;max-width:80vw;padding:10px 16px;text-align:center;color:#ffe0b8;font:12px system-ui,sans-serif;white-space:nowrap;pointer-events:none;background:rgba(24,27,35,.82)}
+.target-bar{background:#262a35;border:1px solid #8c515a;height:8px;border-radius:6px;margin-top:7px;overflow:hidden}
+.target-fill{height:100%;background:linear-gradient(90deg,#8b3b4b,#ed767e);transition:width .16s}
+@media(max-width:750px){
+  .status-graphics{display:none}
+  .settings-panel{right:8px;bottom:128px;padding:13px}
+  .settings-header h2{font-size:17px}
+  .combat-target{top:53px;left:10px;right:auto;transform:none;min-width:160px;max-width:50vw;font-size:10px;padding:6px 9px}
+}
