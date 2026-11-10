@@ -3,6 +3,7 @@
   const $ = id => document.getElementById(id);
   const canvas = $("world");
   const world = globalThis.RavenaWorldData;
+  const layout = globalThis.RavenaMapLayout;
   if(!world || !Array.isArray(world.regions) || !world.story){
     $("create-error").textContent="Dados do mundo indisponíveis. Atualize a página para tentar novamente.";
     return;
@@ -133,6 +134,22 @@
     left.rotation.z=-.55;const right=box("roof right",[x+w*.23,y+.12,z],[w*.57,.22,d+.5],material);
     right.rotation.z=.55;
   }
+  // O desenho das estradas, das trilhas e dos pontos-chave vive no manifesto do Atlas.
+  function distanceToRoute(x,z,road){
+    let min=Infinity;
+    for(let i=1;i<road.points.length;i++){
+      const [ax,az]=road.points[i-1],[bx,bz]=road.points[i];
+      const dx=bx-ax,dz=bz-az,len=dx*dx+dz*dz;
+      const t=len?Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/len)):0;
+      min=Math.min(min,Math.hypot(x-(ax+dx*t),z-(az+dz*t)));
+    }
+    return min;
+  }
+  function onTrail(x,z,range=3){
+    return layout.paths.some(route=>
+      (route.id==="trilha-do-bosque"||route.id==="rota-da-forja")&&
+      distanceToRoute(x,z,route)<range);
+  }
   // Seeded variation gives the same world layout after refresh.
   let seed=72491;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   function flower(x,z){sphere("flower",[x,.13,z],.2,rnd()>.5?m.grassFlower:m.gold);}
@@ -182,6 +199,19 @@
   road(0,25,8,52);
   road(-26,-21,12,39);
   road(31,16,9,35);
+  // Os caminhos do macro mapa também são corredores reais no terreno.
+  for(const trail of layout.paths){
+    for(let i=1;i<trail.points.length;i++){
+      const [ax,az]=trail.points[i-1],[bx,bz]=trail.points[i];
+      const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);
+      if(len<.1)continue;
+      const segment=box("macro route "+trail.id,
+        [(ax+bx)/2,.065,(az+bz)/2],
+        [trail.type==="main"?5.8:trail.type==="local"?4.8:4.1,.09,len+.75],
+        trail.type==="trail"?m.sand:m.road);
+      segment.rotation.y=Math.atan2(dx,dz);
+    }
+  }
   scatterRoad(0,0,17,39,205);
   scatterRoad(0,0,40,11,130);
   // Estrada das Lanternas: ligação a pé entre a Capital e a cidade portuária.
@@ -212,9 +242,13 @@
     cyl("watchtower roof",[x,7,28],.25,6.7,4,m.roof,10);
     obstacle(x,28,3);
   }
-  const gateArch=box("gate stone",[0,5.5,28],[9,11,2.4],m.stone);
-  box("gate opening",[0,2.6,29],[5.1,5.2,2.7],m.black);
-  obstacle(0,28,1.5);
+  // Portão Sul transitável: dois pilares e uma viga deixam a passagem central livre.
+  for(const side of [-1,1]){
+    box("gate pier",[side*3.5,2.65,28],[2.1,5.3,2.5],m.stone);
+    obstacle(side*3.5,28,1.1);
+  }
+  box("gate lintel",[0,6.1,28],[9.1,2,2.8],m.stone);
+  sign("PORTÃO SUL DE AZARATH",0,25,"#eed3aa");
   for(const x of [-16,16]) {
     box("flag pole",[x,3,22],[.18,6,.18],m.wood);
     box("banner",[x,4.2,22],[1.7,2.7,.12],m.red);
@@ -222,11 +256,14 @@
   // Forest (northwest).
   for(let i=0;i<56;i++){
     const x=-60+rnd()*48,z=-55+rnd()*37;
-    if(Math.abs(x+26)<8&&Math.abs(z+28)<8)continue;
+    if(onTrail(x,z,5)||Math.abs(x+26)<8&&Math.abs(z+28)<8)continue;
     tree(x,z,.7+rnd()*.45);
     if(rnd()>.7)flower(x+1.5,z-1);
   }
-  for(let i=0;i<14;i++)rock(-59+rnd()*48,-56+rnd()*36,.6+rnd()*1.3);
+  for(let i=0;i<14;i++){
+    const x=-59+rnd()*48,z=-56+rnd()*36;
+    if(!onTrail(x,z,5))rock(x,z,.6+rnd()*1.3);
+  }
   sign("FLORESTA DOS SUSSURROS",-41,-21,"#bfe2bf");
   // Lake east: large flat water disks, docks, fishing spots.
   disc("shore",55,1,24,m.sand,.04);
@@ -262,7 +299,7 @@
   // Forge and mountains south.
   for(let i=0;i<15;i++){
     const x=-40+rnd()*85,z=39+rnd()*23;
-    rock(x,z,1.8+rnd()*3.8);
+    if(!onTrail(x,z,6))rock(x,z,1.8+rnd()*3.8);
   }
   house(6,48,1.15,m.roofDark);
   house(-12,52,1,m.roofDark);
