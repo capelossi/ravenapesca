@@ -75,6 +75,9 @@
   const oreNodes=[];
   const waterRipples=[];
   let hero=null, config=null, path=[], waypoint=null, nextInteraction=null, level=1,xp=0,hp=100,mp=100;
+  const emptyBag=()=>({ore:0,dagger:0,lambari:0,tilapia:0,carpa:0,lendario:0});
+  let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
+  let totalFish=0,totalOre=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
   const bounded=(x,z)=> Math.abs(x)<88 && Math.abs(z)<88;
   function obstacle(x,z,r){obstacles.push({x,z,r});}
@@ -378,8 +381,8 @@
     actorLabel(name,x,z);
   }
   addNPC("Capitã Elyra",-5,-7,"Bem-vindo a Azarath, aventureiro! Siga as estradas: a oeste ficam as florestas, a leste está o lago e ao sul, a forja. O destino do reino será escrito por suas escolhas.","espadachim",20);
-  addNPC("Mestre Ferreiro",3,46,"Uma boa espada não nasce pronta. Minérios e materiais serão parte do sistema de profissão. No futuro você poderá fabricar e vender equipamentos para outros jogadores.","forjador",15);
-  addNPC("Pescador Orien",33,1,"O Lago da Mãe das Águas esconde espécies raras. A pescaria será uma profissão e não o centro do jogo. Volte aqui quando as missões de pesca estiverem prontas.","mago",15);
+  addNPC("Mestre Ferreiro",3,46,"A forja já está ativa neste protótipo! Pressione 4 junto dos cristais para minerar; depois leve 3 minérios às brasas da oficina e pressione 4 novamente. Forjadores criam duas adagas por lote.","forjador",15);
+  addNPC("Pescador Orien",33,1,"No píer, pressione 5 para lançar a linha e aguarde o peixe fisgar. O peixe que você pescar será guardado na mochila (tecla 3). Existem espécies comuns e lendárias!","mago",15);
   addNPC("Guardião da Floresta",-38,-22,"As criaturas das árvores mudam com a luz. Ainda estamos construindo as missões de caça, coleta e os grandes chefes destas terras.","mago",15);
   // Training enemies and their static HP.
   function addMob(x,z) {
@@ -451,7 +454,7 @@
     return smooth;
   }
   function goto(x,z){
-    if(!hero||dialogueOpen)return;
+    if(!hero||dialogueOpen||fishing)return;
     const start=hero.position, target=new B.Vector3(x,0,z);
     const candidate=route(start,target);
     if(!candidate.length){toast("Este local está bloqueado.");return;}
@@ -462,13 +465,36 @@
     nextInteraction=null;
   }
   const damageRange=()=>config?.kind==="mago"?7:config?.kind==="espadachim"?3.2:2.8;
-  function attack(){
-    if(!hero||dialogueOpen)return;
+  function strike(damage,range,title){
     const nearest=mobs.filter(a=>a.alive).sort((a,b)=>Math.hypot(hero.position.x-a.x,hero.position.z-a.z)-Math.hypot(hero.position.x-b.x,hero.position.z-b.z))[0];
-    if(!nearest||Math.hypot(hero.position.x-nearest.x,hero.position.z-nearest.z)>damageRange()){toast("Aproxime-se de um golem de treino.");return;}
-    nearest.hp-=config.kind==="espadachim"?23:config.kind==="mago"?20:13;
-    if(nearest.hp<=0){nearest.alive=false;nearest.root.setEnabled(false);const i=obstacles.findIndex(o=>o.x===nearest.x&&o.z===nearest.z);if(i>=0)obstacles.splice(i,1);gainXP(35);toast("Golem derrotado! +35 XP");}
-    else toast("Golpe acertou! "+Math.max(0,nearest.hp)+" de vida restante.");
+    if(!nearest||Math.hypot(hero.position.x-nearest.x,hero.position.z-nearest.z)>range){
+      toast("Aproxime-se de um golem de treino.");return false;
+    }
+    nearest.hp-=damage;
+    if(nearest.hp<=0){
+      nearest.alive=false;nearest.root.setEnabled(false);
+      const i=obstacles.findIndex(o=>o.x===nearest.x&&o.z===nearest.z);
+      if(i>=0)obstacles.splice(i,1);
+      gainXP(35);toast(title+" Golem derrotado! +35 XP");
+    }else toast(title+" Golem: "+Math.max(0,nearest.hp)+" HP.");
+    return true;
+  }
+  function attack(){
+    if(!hero||dialogueOpen||fishing)return;
+    const now=performance.now();
+    if(now-lastAttackAt<650)return;
+    if(strike(config.kind==="espadachim"?23:config.kind==="mago"?20:13,damageRange(),"Ataque!"))
+      lastAttackAt=now;
+  }
+  function special(){
+    if(!hero||dialogueOpen||fishing)return;
+    const now=performance.now();
+    if(now-lastSpecialAt<2800){toast("Habilidade em recarga.");return;}
+    if(mp<20){toast("Você precisa de 20 pontos de energia.");return;}
+    const title={mago:"Explosão Arcana!",espadachim:"Corte Veloz!",forjador:"Golpe de Martelo!"}[config.kind];
+    if(strike(config.kind==="mago"?29:25,config.kind==="mago"?9:4,title)){
+      mp-=20;lastSpecialAt=now;updateStats();save();
+    }
   }
   function gainXP(amount){
     xp+=amount;while(xp>=level*100){xp-=level*100;level++;hp=100+level*15;mp=100+level*10;toast("Você subiu para o nível "+level+"!");}
@@ -477,9 +503,10 @@
   function updateStats(){
     $("player-name").textContent=config?.name??"Aventureiro";
     $("player-class").textContent=({mago:"Mago",espadachim:"Espadachim",forjador:"Forjador"}[config?.kind]??"") +" · Nível "+level;
-    $("hp-text").textContent=hp+" / "+(100+Math.max(0,level-1)*15);
-    $("mp-text").textContent=mp+" / "+(100+Math.max(0,level-1)*10);
-    $("hp-fill").style.width="100%";$("mp-fill").style.width="100%";
+    $("hp-text").textContent=Math.ceil(hp)+" / "+(100+Math.max(0,level-1)*15);
+    $("mp-text").textContent=Math.floor(mp)+" / "+(100+Math.max(0,level-1)*10);
+    $("hp-fill").style.width=(hp/(100+Math.max(0,level-1)*15)*100)+"%";
+    $("mp-fill").style.width=(mp/(100+Math.max(0,level-1)*10)*100)+"%";
     $("xp-fill").style.width=(xp/(level*100)*100)+"%";
     $("xp-text").textContent=xp+" / "+(level*100);
   }
@@ -488,7 +515,82 @@
   }
   function save(){
     if(!hero||!config)return;
-    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({config,x:hero.position.x,z:hero.position.z,xp,level,quest}));}catch{}
+    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({config,x:hero.position.x,z:hero.position.z,xp,level,quest,bag,totalFish,totalOre}));}catch{}
+  }
+  const bagCatalog=[
+    ["ore","⛏","Minério bruto"],["dagger","⚔","Adaga forjada"],
+    ["lambari","🐟","Lambari"],["tilapia","🐟","Tilápia"],
+    ["carpa","🐠","Carpa"],["lendario","✦","Peixe lendário"]
+  ];
+  function renderBag(){
+    const container=$("inventory-items");
+    container.replaceChildren();
+    let visible=0;
+    for(const [key,icon,label] of bagCatalog){
+      const count=bag[key]||0;if(!count)continue;
+      visible++;
+      const row=document.createElement("div");row.className="inventory-item";
+      const a=document.createElement("div");a.className="inventory-symbol";a.textContent=icon;
+      const b=document.createElement("div");b.className="inventory-title";b.textContent=label;
+      const c=document.createElement("strong");c.className="inventory-quantity";c.textContent="× "+count;
+      row.append(a,b,c);container.appendChild(row);
+    }
+    if(!visible){
+      const empty=document.createElement("div");empty.className="inventory-empty";
+      empty.textContent="A mochila está vazia. Explore o Lago e as Montanhas da Forja para encontrar recursos.";
+      container.appendChild(empty);
+    }
+  }
+  function toggleBag(force){
+    const visible=force??$("inventory-panel").classList.contains("hidden");
+    $("inventory-panel").classList.toggle("hidden",!visible);
+    if(visible)renderBag();
+  }
+  function addItem(key,count=1){
+    if(!(key in bag))return;
+    bag[key]=Math.max(0,(bag[key]||0)+count);
+    renderBag();save();
+  }
+  function forgeAction(){
+    if(!hero||dialogueOpen||fishing)return;
+    const x=hero.position.x,z=hero.position.z,now=performance.now();
+    const nearOre=oreNodes.find(n=>Math.hypot(x-n.x,z-n.z)<5);
+    if(nearOre){
+      if(now<nearOre.cooldownUntil){toast("Este veio foi minerado. Ele se recupera em alguns segundos.");return;}
+      nearOre.cooldownUntil=now+17000;
+      nearOre.shards.forEach(mesh=>mesh.setEnabled(false));
+      const count=config.kind==="forjador"?3:2;
+      addItem("ore",count);totalOre+=count;gainXP(7);
+      toast("Mineração concluída! +"+count+" minério · +7 XP");
+      return;
+    }
+    if(Math.hypot(x-15,z-41)<8){
+      if(bag.ore<3){toast("A forja precisa de 3 minérios. Procure os cristais nas montanhas.");return;}
+      addItem("ore",-3);
+      const count=config.kind==="forjador"?2:1;
+      addItem("dagger",count);gainXP(18);
+      toast("Você forjou "+count+" adaga"+(count>1?"s":"")+"! +18 XP");
+      return;
+    }
+    toast("Para minerar, aproxime-se de cristais nas montanhas; para forjar, vá até as brasas da oficina.");
+  }
+  function fishAction(){
+    if(!hero||dialogueOpen)return;
+    if(fishing){toast("Aguarde o peixe morder a isca.");return;}
+    const x=hero.position.x,z=hero.position.z;
+    if(x<29||x>40||Math.abs(z-1)>7){toast("Aproxime-se do píer do Lago da Mãe das Águas para pescar.");return;}
+    path=[];marker.setEnabled(false);markerInner.setEnabled(false);
+    fishing={end:performance.now()+2700,x:hero.position.x,z:hero.position.z};
+    toast("Você lançou a linha... Observe a água!",2.6);
+  }
+  function finishFishing(){
+    fishing=null;
+    const roll=Math.random();
+    const fish=roll<.48?["lambari","Lambari",7]:
+      roll<.80?["tilapia","Tilápia",12]:
+      roll<.975?["carpa","Carpa",19]:["lendario","Peixe lendário",65];
+    addItem(fish[0],1);totalFish++;gainXP(fish[2]);
+    toast("Pescaria! Você capturou: "+fish[1]+" · +"+fish[2]+" XP",5);
   }
   function area(x,z){
     if(x>27 && z>-25&&z<25)return "Lago da Mãe das Águas";
@@ -539,8 +641,18 @@
   }
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
-  $("button-help").addEventListener("click",()=>toast("Clique ou toque no chão: mover | E: NPC | 1: atacar | Roda do mouse: zoom",5));
-  $("button-profile").addEventListener("click",()=>toast(config.name+" · "+config.kind+" · Nível "+level+" | Personagem salvo neste navegador.",5));
+  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · E: conversar · 1: atacar · 2: especial · 3: mochila · 4: forjar/minerar · 5: pescar",7));
+  $("button-profile").addEventListener("click",()=>toast(config.name+" · "+config.kind+" · Nível "+level+" | "+totalFish+" peixes · "+totalOre+" minérios coletados.",5));
+  $("button-inventory").addEventListener("click",()=>toggleBag());
+  $("inventory-close").addEventListener("click",()=>toggleBag(false));
+  document.querySelectorAll("[data-action]").forEach(button=>button.addEventListener("click",()=>{
+    const action=button.dataset.action;
+    if(action==="attack")attack();
+    else if(action==="heal")special();
+    else if(action==="inventory")toggleBag();
+    else if(action==="forge")forgeAction();
+    else if(action==="fish")fishAction();
+  }));
   const classes=document.querySelectorAll(".class");
   let selected="mago",skin=0,hair=0;
   classes.forEach(button=>button.addEventListener("click",()=>{
@@ -556,6 +668,18 @@
   }
   const saved=(()=>{try{return JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null")}catch{return null}})();
   if(saved?.config?.name)$("name").value=saved.config.name;
+  if(["mago","espadachim","forjador"].includes(saved?.config?.kind)){
+    selected=saved.config.kind;
+    classes.forEach(b=>b.classList.toggle("selected",b.dataset.class===selected));
+  }
+  if([0,1,2].includes(saved?.config?.skin)){
+    skin=saved.config.skin;
+    document.querySelectorAll(".tone").forEach(b=>b.classList.toggle("selected",Number(b.dataset.tone)===skin));
+  }
+  if([0,1,2].includes(saved?.config?.hair)){
+    hair=saved.config.hair;
+    document.querySelectorAll(".hair").forEach(b=>b.classList.toggle("selected",Number(b.dataset.hair)===hair));
+  }
   function start(){
     const name=$("name").value.trim();
     if(!/^[\p{L}\p{N}_]{3,16}$/u.test(name)){$("create-error").textContent="Use 3 a 16 letras, números ou _ no nome.";return;}
@@ -563,9 +687,15 @@
     if(hero){hero.dispose();}
     hero=makeActor(name,0,-3,selected,m["skin"+skin],m["hair"+hair]);
     const sameSaved=saved?.config?.name===name&&saved?.config?.kind===selected;
-    if(sameSaved){level=Number(saved.level)||1;xp=Number(saved.xp)||0;quest=Number(saved.quest)||0;
+    if(sameSaved){level=Math.max(1,Number(saved.level)||1);xp=Math.max(0,Number(saved.xp)||0);quest=Math.max(0,Number(saved.quest)||0);
+      bag=emptyBag();
+      for(const key of Object.keys(bag))bag[key]=Math.max(0,Math.floor(Number(saved.bag?.[key])||0));
+      totalFish=Math.max(0,Math.floor(Number(saved.totalFish)||0));
+      totalOre=Math.max(0,Math.floor(Number(saved.totalOre)||0));
       if(Number.isFinite(saved.x)&&Number.isFinite(saved.z)&&!blocked(saved.x,saved.z))hero.position.set(saved.x,0,saved.z);}
+    if(!sameSaved){level=1;xp=0;quest=0;bag=emptyBag();totalFish=0;totalOre=0;}
     hp=100+Math.max(0,level-1)*15;mp=100+Math.max(0,level-1)*10;
+    renderBag();
     $("creation").classList.add("hidden");$("hud").classList.remove("hidden");
     updateStats();updateQuest();currentZone="";updateZone();save();
     toast("Bem-vindo a Azarath, "+name+"! Clique no chão para caminhar.",5);
@@ -575,10 +705,11 @@
     if(!hero||["INPUT","TEXTAREA"].includes(document.activeElement?.tagName))return;
     if(e.key.toLowerCase()==="e")interact();
     if(e.key==="1")attack();
-    if(e.key==="2")toast("Habilidades mágicas: em desenvolvimento.");
-    if(e.key==="4")toast("Sistema de forja: próxima etapa.");
-    if(e.key==="5")toast("A pescaria estará disponível no mapa do lago.");
-    if(e.key==="Escape")closeDialogue();
+    if(e.key==="2")special();
+    if(e.key==="3"||e.key.toLowerCase()==="i")toggleBag();
+    if(e.key==="4")forgeAction();
+    if(e.key==="5")fishAction();
+    if(e.key==="Escape"){closeDialogue();toggleBag(false);}
   });
   // Pointer only moves on a ground hit; picking characters can never teleport the player.
   let down=null;
