@@ -8,6 +8,12 @@
 - `navigation.js` — serviço de A* em grade com fila de prioridade, isolado do Babylon.js, candidato a substituição por NavMesh.
 - `game.js` — motor Babylon.js, mundo procedural atual, consumo do serviço de navegação e ações locais.
 - `ui-chronicles.js` — diário narrativo desacoplado do motor gráfico.
+- `graphics.js` — texturas temporárias, três perfis de qualidade e ciclo de dia/noite no cliente.
+- `combat-rules.js` — regras puras de tipos de inimigos, dano e saque.
+- `enemies.js` — modelos de criaturas, detecção, perseguição e combate solo; deve ser substituído pela simulação de zona quando houver rede.
+- `server/zone-engine.mjs` — núcleo **não conectado** de movimento autoritativo e filtro por proximidade, sem login, banco, WebSocket ou anti-colisão completo.
+- `server/zone-engine.test.mjs` — testes determinísticos para controle de velocidade, capacidade, sessão e raio de visibilidade.
+- `browser-smoke.mjs` — teste headless desktop/mobile, se houver Chromium e Playwright instalados.
 - `check.mjs` — teste de sintaxe e contratos básicos, sem substituir testes em navegador.
 - `docs/BIBLIA-DO-MUNDO.md` — lore e direção criativa.
 
@@ -40,6 +46,8 @@ Na versão inicial de teste, Capital e Vila das Marés convivem em uma única ce
 **Gateway de identidade:** login, sessões, limites, banimentos, verificação e controle de abuso; JWT curto ou sessão segura, renovação controlada.
 
 **Servidor de zona (Colyseus/Node ou equivalente):** movimento validado, combate e efeitos de mundo, NPCs, eventos, presença de jogadores e interesse espacial. Sincronizar apenas entidades próximas, não a região inteira para todos.
+
+Já existe um esqueleto independente em `server/zone-engine.mjs` que aceita **destinos solicitados, nunca posições verificadas** e desloca jogadores por tick sob limite de velocidade. Ele foi deliberadamente mantido sem transporte de rede: antes de expor WSS será necessário autenticação, colisão/NavMesh de servidor, persistência e testes de carga. O teste atual é lógico e não comprova escala real.
 
 **Serviço de progressão:** personagens, inventário, missões, XP, habilidades, profissões e achievements; persistência e regras de negócio.
 
