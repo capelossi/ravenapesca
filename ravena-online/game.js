@@ -57,6 +57,10 @@
   m.water.alpha=.84; m.water2.alpha=.8;
   m.lavender.emissiveColor=new B.Color3(.24,.08,.45);
   m.fire.emissiveColor=new B.Color3(.53,.15,.03);
+  m.ore=mat("ore crystal","#a8c5d4");
+  m.ore.emissiveColor=new B.Color3(.13,.19,.25);
+  m.lantern=mat("warm lantern","#f3c577");
+  m.lantern.emissiveColor=new B.Color3(.46,.27,.09);
   m.gold.specularColor=new B.Color3(.4,.3,.1);
 
   const ground=B.MeshBuilder.CreateGround("clickable-ground",{width:184,height:184,subdivisions:2},scene);
@@ -68,6 +72,8 @@
   const obstacles=[];
   const interactables=[];
   const mobs=[];
+  const oreNodes=[];
+  const waterRipples=[];
   let hero=null, config=null, path=[], waypoint=null, nextInteraction=null, level=1,xp=0,hp=100,mp=100;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
   const bounded=(x,z)=> Math.abs(x)<88 && Math.abs(z)<88;
@@ -218,6 +224,28 @@
     box("forge ember",[12+i*2.2,1.35,41],[1.1,.2,1],m.fire);
   }
   sign("MONTANHAS DA FORJA",0,38,"#efc18b");
+  // Mining nodes remain traversable, unlike the surrounding boulders.
+  const oreCandidates=[[22,51],[-5,60],[30,43],[-25,52],[27,58],[6,63],[18,61]];
+  for(const [x,z] of oreCandidates){
+    if(blocked(x,z,1.3))continue;
+    const shards=[];
+    for(let j=0;j<3;j++){
+      const shard=B.MeshBuilder.CreatePolyhedron("ore crystal",{type:1,size:.55+j*.11},scene);
+      shard.position.set(x+(j-1)*.55,.36+j*.08,z+(j%2)*.38);
+      shard.scaling.y=1.3+j*.25;shard.material=m.ore;shard.isPickable=false;
+      shards.push(shard);
+    }
+    oreNodes.push({x,z,shards,cooldownUntil:0});
+  }
+  // Animated concentric ripples above the lake's static water surface.
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3;
+    const ripple=B.MeshBuilder.CreateTorus("water ripple",{diameter:1.5,thickness:.035,tessellation:24},scene);
+    ripple.position.set(55+Math.cos(a)*10,.12,1+Math.sin(a)*10);
+    ripple.material=m.water2;
+    ripple.isPickable=false;
+    waterRipples.push({mesh:ripple,offset:i*.7});
+  }
   // Roadside décor.
   for(const x of [-6,6,20,-20])for(const z of [-18,19]){
     cyl("lantern pole",[x,2,z],.2,.25,4,m.black);
@@ -231,6 +259,28 @@
 
   // Lightweight articulated character rig: separate shoulder/hip pivots permit walking
   // and idle animation without external skeletal assets in the prototype.
+  // Market square, fountain and garden beds establish a recognizable capital.
+  function marketStall(x,z,awning){
+    for(const side of [-1,1])for(const dz of [-1,1])
+      box("market post",[x+side*1.35,1.25,z+dz*.9],[.15,2.5,.15],m.wood);
+    box("market canopy",[x,2.66,z],[3.2,.19,2.45],awning);
+    box("market counter",[x,.87,z],[2.8,1.1,1.25],m.wood);
+    for(let j=0;j<4;j++)sphere("market produce",[x-1+j*.65,1.5,z+.34],.34,
+      j%2?m.gold:m.leaves2);
+    obstacle(x,z,1.65);
+  }
+  marketStall(-19,-16,m.red);
+  marketStall(19,15,m.roofDark);
+  cyl("well rim",[0,.5,13],3.1,3.1,1,m.stone,12);
+  cyl("well water",[0,1.03,13],2.45,2.45,.05,m.water,18);
+  obstacle(0,13,1.85);
+  for(const [x,z] of [[-8,8],[8,8],[-7,20],[7,-21],[-17,0],[19,-2]]){
+    cyl("planter",[x,.25,z],1.65,1.4,.5,m.stone,8);
+    sphere("garden shrubs",[x,.85,z],1.7,m.leaves2);
+    for(let i=0;i<4;i++)flower(x+(rnd()-.5)*1.3,z+(rnd()-.5)*1.3);
+    obstacle(x,z,.85);
+  }
+
   function makeActor(name,x,z,kind="mago",skin=m.skin0,hair=m.hair0){
     const root=new B.TransformNode(name+" root",scene);
     root.position.set(x,0,z);
