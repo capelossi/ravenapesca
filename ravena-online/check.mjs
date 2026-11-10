@@ -22,6 +22,8 @@ for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js
   "graphics.js","combat-rules.js","enemies.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
+// Unit tests for server-authoritative movement and proximity snapshots.
+execFileSync(process.execPath,["--test",join(dir,"server","zone-engine.test.mjs")],{stdio:"inherit"});
 const scope={};
 runInNewContext(worldSource,{globalThis:scope});
 const world=scope.RavenaWorldData;
