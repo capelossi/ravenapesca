@@ -5,6 +5,9 @@
 - `index.html` — interface, criação de personagem e telas.
 - `style.css` — interface responsiva.
 - `world-data.js` — registro de cidades, regiões, NPCs, posições, capítulo e expansões; **nenhum código de renderização**.
+- `capital-layout.js` — planta editável da Capital: edifícios nomeados, entradas, avenidas, feiras e iluminação.
+- `capital-scene.js` — construtor de geometria 3D apenas da Capital. Não contém lógica de quests ou profissão.
+- **Contrato entre mapa e cenário:** cada edifício com ID estável expõe um `approach` externo que corresponde a um POI no `world-layout.js`. Os edifícios da capital usam colisões retangulares; portais e interiores só serão criados após validar os acessos.
 - `navigation.js` — serviço de A* em grade com fila de prioridade, isolado do Babylon.js, candidato a substituição por NavMesh.
 - `game.js` — motor Babylon.js, mundo procedural atual, consumo do serviço de navegação e ações locais.
 - `ui-chronicles.js` — diário narrativo desacoplado do motor gráfico.
