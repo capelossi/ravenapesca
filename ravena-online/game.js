@@ -38,7 +38,8 @@
   camera.wheelPrecision = 65;
   camera.inputs.removeByType("ArcRotateCameraPointersInput");
   camera.attachControl(canvas,true);
-  camera.fov=.77;
+  camera.fov=window.innerWidth<=750?.82:.77;
+  if(window.innerWidth<=750)camera.radius=36;
   const mat=(name,hex,rough=1) => {
     const m=new B.StandardMaterial(name,scene);
     m.diffuseColor=B.Color3.FromHexString(hex);
@@ -53,15 +54,18 @@
     wall:mat("wall","#b3a38a"),roof:mat("terracotta","#8b4f46"),
     roofDark:mat("roof blue","#4b5666"),wood:mat("wood","#674537"),beams:mat("timber","#49352e"),
     leaves:mat("leaves","#43705a"),leaves2:mat("leaves light","#75905b"),leaves3:mat("leaves dark","#345643"),
-    trunk:mat("trunk","#655044"),water:mat("lake","#428fa3"),water2:mat("lake shallow","#68b2b1"),
-    sand:mat("shore","#c2ae7e"),gold:mat("gold","#d6aa5b"),grassFlower:mat("flowers","#bf7c98"),
+    trunk:mat("trunk","#655044"),water:mat("lake","#2b6171"),water2:mat("lake shallow","#3e7c84"),
+    sand:mat("shore","#918b77"),gold:mat("gold","#d6aa5b"),grassFlower:mat("flowers","#bf7c98"),
     red:mat("banner","#732c47"),black:mat("iron","#292d34"),fire:mat("lava","#e77839"),
     lavender:mat("arcane","#9751c6"),skin0:mat("skin0","#f4c9a0"),skin1:mat("skin1","#b98256"),skin2:mat("skin2","#71442f"),
     hair0:mat("hair0","#6f304b"),hair1:mat("hair1","#4d3023"),hair2:mat("hair2","#d8ad57"),
     cape:mat("cape","#4f263f"),robe:mat("mage robe","#39334f"),armor:mat("armor","#485663"),leather:mat("leather","#71523d"),
     white:mat("cloud","#f4e6cd"),npc:mat("npc robe","#6d775c")
   };
-  m.water.alpha=.84; m.water2.alpha=.8;
+  // O lago deixa de ser uma superfície ciano fluorescente no celular.
+  m.water.alpha=1; m.water2.alpha=.96;
+  m.water.specularColor=new B.Color3(.28,.37,.39);
+  m.water2.specularColor=new B.Color3(.22,.32,.32);
   m.lavender.emissiveColor=new B.Color3(.24,.08,.45);
   m.fire.emissiveColor=new B.Color3(.53,.15,.03);
   m.ore=mat("ore crystal","#a8c5d4");
@@ -85,6 +89,7 @@
 
   const obstacles=[];
   const interactables=[];
+  const worldSigns=[]; // letreiros contextuais (não HUD permanente)
   const oreNodes=[];
   const waterRipples=[];
   let hero=null, config=null, path=[], waypoint=null, nextInteraction=null, level=1,xp=0,hp=100,mp=100;
@@ -92,6 +97,7 @@
   let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
   let totalFish=0,totalOre=0,targetUntil=0,lastEnemyHit=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
+  let lastSignUpdate=0;
   // Leitura diagnóstica opt-in apenas na pré-alfa, para validar rotas de ponta a ponta.
   // Não oferece teleporte, alterações de XP ou ferramentas de administração.
   if(new URLSearchParams(window.location.search).get("debug")==="1"){
@@ -186,17 +192,37 @@
     obstacle(x,z,1.3*s);
   }
   function rock(x,z,s=1){const o=sphere("rock",[x,.35*s,z],s,m.darkStone);o.scaling.y=.75;obstacle(x,z,s*.45);}
-  function sign(text,x,z,color="#ffe6a7"){
-    const plane=B.MeshBuilder.CreatePlane("sign",{width:5,height:1.1},scene);
-    plane.position=new B.Vector3(x,4.3,z);
+  function sign(text,x,z,color="#ffe6a7",kind="landmark"){
+    const mobile=window.innerWidth<=750;
+    const npc=kind==="npc";
+    const width=npc?(mobile?2.2:2.5):(mobile?3:3.9);
+    const plane=B.MeshBuilder.CreatePlane("sign "+text,{
+      width,height:npc?.57:.78
+    },scene);
+    plane.position=new B.Vector3(x,npc?3.55:4.35,z);
     plane.billboardMode=B.Mesh.BILLBOARDMODE_ALL;
     plane.isPickable=false;
-    const texture=new B.DynamicTexture("sign texture",{width:512,height:112},scene,false);
+    const texture=new B.DynamicTexture("sign "+text+" texture",{width:512,height:112},scene,false);
     const ctx=texture.getContext();ctx.clearRect(0,0,512,112);
-    ctx.fillStyle="rgba(12,18,30,.75)";ctx.fillRect(0,18,512,76);
-    ctx.strokeStyle="#ba965b";ctx.lineWidth=3;ctx.strokeRect(3,21,506,70);
-    ctx.font="bold 35px Georgia";ctx.fillStyle=color;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,256,56);
-    texture.update();const sm=new B.StandardMaterial("sign",scene);sm.diffuseTexture=texture;sm.emissiveColor=new B.Color3(.72,.72,.72);sm.backFaceCulling=false;plane.material=sm;
+    ctx.fillStyle="rgba(13,21,32,.82)";ctx.fillRect(4,20,504,71);
+    ctx.strokeStyle="#987c54";ctx.lineWidth=2;ctx.strokeRect(5,21,502,69);
+    ctx.font="bold 31px Georgia";ctx.fillStyle=color;ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    // Não estender letreiros pelas passarelas ou pelo centro da câmera.
+    const label=String(text).length>29?String(text).slice(0,27)+"…":String(text);
+    ctx.fillText(label,256,56,480);
+    texture.hasAlpha=true;
+    texture.update();
+    const material=new B.StandardMaterial("sign "+text,scene);
+    material.diffuseTexture=texture;
+    material.useAlphaFromDiffuseTexture=true;
+    material.emissiveColor=new B.Color3(.45,.45,.44);
+    material.disableLighting=true;
+    material.backFaceCulling=false;
+    plane.material=material;
+    plane.setEnabled(false);
+    worldSigns.push({mesh:plane,x,z,kind,caption:String(text)});
+    return plane;
   }
   function house(x,z,scale=1,roofmat=m.roof) {
     const w=5.3*scale,d=5.3*scale,h=5*scale;
@@ -468,8 +494,7 @@
     rig.capePivot.rotation.z=Math.sin(seconds*1.3)*.025;
   }
   function actorLabel(text,x,z,color="#f0dfb7"){
-    const label=sign(text,x,z,color);
-    return label;
+    return sign(text,x,z,color,"npc");
   }
   function addNPC({id,name,x,z,story,kind="forjador"}){
     const root=makeActor(name,x,z,kind,m.skin1,m.hair1);
@@ -706,14 +731,18 @@
   }
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
-  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · M: mapa do mundo · E: NPC · J: crônicas · 1: ataque · 2: habilidade · 3: mochila · 4: forja · 5: pesca",7));
-  $("button-map").addEventListener("click",()=>{
+  // Em tela móvel a interação é um botão real; o teclado E continua opcional.
+  $("interaction").addEventListener("click",interact);
+  const showAtlas=()=>{
     toggleBag(false);
     $("settings-panel").classList.add("hidden");
     globalThis.RavenaJournal?.close();
     if(hero)atlas.update(hero.position.x,hero.position.z,currentZone);
     atlas.toggle();
-  });
+  };
+  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · M: mapa do mundo · E: NPC · J: crônicas · 1: ataque · 2: habilidade · 3: mochila · 4: forja · 5: pesca",7));
+  $("button-map").addEventListener("click",showAtlas);
+  $("mini-map-open").addEventListener("click",showAtlas);
   function qualityUI(){
     const descriptions={
       leve:"Leve: resolução reduzida, sem sombras complexas ou brilho.",
@@ -907,8 +936,43 @@
       camera.target=B.Vector3.Lerp(camera.target,target,Math.min(1,dt*5));
       if(marker.isEnabled()){marker.rotation.z=pulse*.9;marker.scaling.setAll(1+Math.sin(pulse*5)*.09);}
       updateZone();
-      const nearby=interactables.some(n=>Math.hypot(n.x-hero.position.x,n.z-hero.position.z)<4.6);
-      $("interaction").classList.toggle("hidden",!nearby||dialogueOpen);
+      let nearestNpc=null,nearestDist=Infinity;
+      for(const npc of interactables){
+        const d=Math.hypot(npc.x-hero.position.x,npc.z-hero.position.z);
+        if(d<nearestDist){nearestDist=d;nearestNpc=npc;}
+      }
+      const npcAvailable=nearestDist<4.6&&!dialogueOpen;
+      const interactionButton=$("interaction");
+      interactionButton.classList.toggle("hidden",!npcAvailable);
+      if(npcAvailable){
+        const caption="◉ Conversar com "+nearestNpc.name;
+        if(interactionButton.textContent!==caption)interactionButton.textContent=caption;
+        interactionButton.setAttribute("aria-label",caption);
+      }
+      // Os letreiros 3D são mostrados por proximidade, e nunca cobrem
+      // dezenas de pixels na tela móvel como na primeira pré-alfa.
+      if(now-lastSignUpdate>=180){
+        lastSignUpdate=now;
+        const mobile=window.innerWidth<=750;
+        let closestLandmark=null,closestLandmarkDist=Infinity;
+        let closestNpcLabel=null,closestNpcLabelDist=Infinity;
+        for(const mark of worldSigns){
+          const d=Math.hypot(mark.x-hero.position.x,mark.z-hero.position.z);
+          if(mark.kind==="npc"){
+            if(d<closestNpcLabelDist){closestNpcLabel=mark;closestNpcLabelDist=d;}
+          }else if(d<closestLandmarkDist){
+            closestLandmark=mark;closestLandmarkDist=d;
+          }
+        }
+        for(const mark of worldSigns){
+          const show=mobile
+            ?mark.kind==="landmark"&&mark===closestLandmark&&
+               closestLandmarkDist<10&&nearestDist>5.5
+            :((mark.kind==="npc"&&mark===closestNpcLabel&&closestNpcLabelDist<11)||
+              (mark.kind!=="npc"&&mark===closestLandmark&&closestLandmarkDist<16));
+          if(mark.mesh.isEnabled()!==show)mark.mesh.setEnabled(show);
+        }
+      }
       if(now-lastSave>12000){save();lastSave=now;}
     }else camera.target=B.Vector3.Lerp(camera.target,new B.Vector3(0,1.6,0),Math.min(1,dt*3));
     const heroPosition=hero?{x:hero.position.x,z:hero.position.z}:null;
