@@ -7,6 +7,9 @@
 - `world-data.js` — registro de cidades, regiões, NPCs, posições, capítulo e expansões; **nenhum código de renderização**.
 - `capital-layout.js` — planta editável da Capital: edifícios nomeados, entradas, avenidas, feiras e iluminação.
 - `capital-scene.js` — construtor de geometria 3D apenas da Capital. Não contém lógica de quests ou profissão.
+- `village-layout.js` — planta versionada da Vila das Marés: prefeitura, pousada, armazém, oficina naval, bairro residencial, farol, praias e píer. Contém funções geométricas puras `inPier(x,z,pad)` e `isLakeBlocked(x,z,pad)`.
+- `village-scene.js` — construtor 3D de edifícios, praças, mercados, barcos e água. Substituível por assets GLB sem mudar as regras de navegação.
+- **Contrato da margem:** nunca criar um grande obstáculo circular sobre o píer. A água bloqueia movimento exceto no corredor da passarela, delimitado no manifesto. O motor de navegação, a pesca e os testes devem usar a mesma fonte de verdade. O lago é parte da cidade, não uma zona online isolada.
 - **Contrato entre mapa e cenário:** cada edifício com ID estável expõe um `approach` externo que corresponde a um POI no `world-layout.js`. Os edifícios da capital usam colisões retangulares; portais e interiores só serão criados após validar os acessos.
 - `navigation.js` — serviço de A* em grade com fila de prioridade, isolado do Babylon.js, candidato a substituição por NavMesh.
 - `game.js` — motor Babylon.js, mundo procedural atual, consumo do serviço de navegação e ações locais.
