@@ -14,12 +14,14 @@ const game=readFileSync(join(dir,"game.js"),"utf8");
 const worldSource=readFileSync(join(dir,"world-data.js"),"utf8");
 const chronicles=readFileSync(join(dir,"ui-chronicles.js"),"utf8");
 const navigation=readFileSync(join(dir,"navigation.js"),"utf8");
+const layoutSource=readFileSync(join(dir,"world-layout.js"),"utf8");
+const atlasSource=readFileSync(join(dir,"ui-world-map.js"),"utf8");
 const graphics=readFileSync(join(dir,"graphics.js"),"utf8");
 const combatSource=readFileSync(join(dir,"combat-rules.js"),"utf8");
 const enemiesSource=readFileSync(join(dir,"enemies.js"),"utf8");
 
 for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js",
-  "graphics.js","combat-rules.js","enemies.js"]){
+  "graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
 // Unit tests for server-authoritative movement and proximity snapshots.
@@ -28,6 +30,9 @@ const scope={};
 runInNewContext(worldSource,{globalThis:scope});
 const world=scope.RavenaWorldData;
 assert.ok(world,"World registry must be loaded");
+runInNewContext(layoutSource,{globalThis:scope});
+const layout=scope.RavenaMapLayout;
+assert.ok(layout && layout.version===1,"Versioned macro map missing");
 runInNewContext(navigation,{globalThis:scope});
 const nav=scope.RavenaNavigation;
 assert.ok(nav && typeof nav.findPath==="function","Reusable navigation module missing");
@@ -52,6 +57,9 @@ for(const id of ["inventory-panel","inventory-items","button-inventory","invento
  "chronicle-panel","chronicle-content","chronicle-close","button-journal","quest-chapter",
  "settings-panel","settings-close","button-settings","graphics-fps","graphics-description",
  "combat-target","target-name","target-fill","target-hp",
+ "button-map","world-map-panel","world-map-close","atlas-svg-host",
+ "atlas-navigate","atlas-place-name","atlas-place-description","atlas-place-list",
+ "atlas-place-status","atlas-region-label",
  "world","creation","hud"])
   assert.ok(ids.has(id),"Essential UI element missing: "+id);
 
@@ -67,6 +75,7 @@ assert.ok(!game.includes("light.material.alpha=.22"),"Do not change shared gold 
 assert.ok(css.includes(".inventory-panel"),"Inventory styling missing");
 assert.ok(css.includes(".settings-panel"),"Graphics settings styles missing");
 assert.ok(css.includes(".combat-target"),"Target HUD styles missing");
+assert.ok(css.includes(".world-map-panel"),"Responsive atlas CSS missing");
 assert.ok(html.includes("babylon.js"),"Babylon.js dependency missing");
 
 assert.ok(html.includes('<script src="world-data.js"></script>'),"World manifest must load first");
@@ -74,7 +83,7 @@ assert.ok(html.indexOf('src="world-data.js"')<html.indexOf('src="game.js"'),
   "World manifest must load before the game");
 assert.ok(html.includes('<script src="ui-chronicles.js"></script>'),"Journal module missing");
 assert.ok(html.includes('<script src="navigation.js"></script>'),"Navigation module missing");
-for(const src of ["graphics.js","combat-rules.js","enemies.js"]){
+for(const src of ["graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js"]){
   assert.ok(html.includes('<script src="'+src+'"></script>'),"Missing module "+src);
   assert.ok(html.indexOf('src="'+src+'"')<html.indexOf('src="game.js"'),
     "Modules must load before game: "+src);
@@ -84,6 +93,10 @@ assert.ok(html.indexOf('src="navigation.js"')<html.indexOf('src="game.js"'),
 assert.ok(game.includes("RavenaNavigation.findPath"),"Game must use modular pathfinding");
 assert.ok(game.includes("RavenaEnemies.create"),"Game must instantiate enemy runtime");
 assert.ok(game.includes("RavenaVisuals.create"),"Game must initialize graphics settings");
+assert.ok(game.includes("RavenaMapUI.create"),"Game must initialize world atlas");
+assert.ok(game.includes('if(atlas.visible)atlas.update'),"Player marker must follow position");
+assert.ok(game.includes('onTrail(x,z'),"Roads must clear vegetation and obstacles");
+assert.ok(game.includes('gate pier'),"South city gate must remain traversable");
 assert.ok(game.includes("enemies.tick(dt"),"Enemy AI must run in gameplay loop");
 assert.ok(css.includes(".chronicle-panel"),"Journal styles missing");
 assert.ok(game.includes("for(const npc of world.npcs)"),"NPCs must be data-driven");
@@ -97,6 +110,28 @@ assert.ok(game.includes('advanceStory("craft:dagger")'),"Crafting must have narr
 
 const unique=(values)=>new Set(values).size===values.length;
 assert.ok(unique(world.regions.map(x=>x.id)),"Region IDs must be unique");
+assert.ok(unique(layout.regions.map(x=>x.id)),"Atlas region IDs must be unique");
+assert.ok(unique(layout.places.map(x=>x.id)),"Atlas POI IDs must be unique");
+assert.ok(unique(layout.paths.map(x=>x.id)),"Atlas route IDs must be unique");
+assert.equal(layout.regions.length,4,"Map-first foundation has four regions");
+assert.equal(layout.places.length,15,"Map-first foundation has fifteen POIs");
+assert.equal(layout.startId,world.start.region,"Atlas initial region must match the world");
+for(const r of layout.regions)
+  assert.ok(world.regions.some(z=>z.id===r.id),"Atlas region unknown: "+r.id);
+for(const spot of layout.places){
+  assert.ok(world.regions.some(r=>r.id===spot.region),"POI belongs to unknown region");
+  assert.ok(Number.isFinite(spot.x)&&Number.isFinite(spot.z),"Invalid atlas POI position");
+  assert.ok(spot.x>=layout.extent.minX&&spot.x<=layout.extent.maxX,"POI outside east-west bounds");
+  assert.ok(spot.z>=layout.extent.minZ&&spot.z<=layout.extent.maxZ,"POI outside north-south bounds");
+  assert.ok(["planned","greybox"].includes(spot.phase),"POI build phase not declared");
+}
+for(const road of layout.paths){
+  assert.ok(layout.regions.some(z=>z.id===road.from),"Road starting region missing");
+  assert.ok(layout.regions.some(z=>z.id===road.to),"Road destination region missing");
+  assert.ok(road.points.length>=2&&road.points.every(p=>
+    Array.isArray(p)&&p.length===2&&p.every(Number.isFinite)),
+    "Route polyline must be valid: "+road.id);
+}
 assert.ok(unique(world.npcs.map(x=>x.id)),"NPC IDs must be unique");
 assert.ok(unique(world.story.stages.map(x=>x.id)),"Quest IDs must be unique");
 assert.ok(Array.isArray(world.enemies)&&world.enemies.length>=3,"Enemy spawns missing");
@@ -163,6 +198,10 @@ assert.equal(simulate([...prefix,"talk:faroleira-iara","enter:montanhas-da-forja
   "talk:mestre-ferreiro","talk:mestre-ferreiro","talk:capita-elyra"]),
   world.story.stages.length,"Alternative route should finish without fishing/crafting");
 assert.ok(chronicles.includes("story.stages"),"Journal must read chapter data");
+assert.ok(atlasSource.includes("onNavigate(selected)"),"Atlas must use on-foot route callback");
+assert.ok(atlasSource.includes('place.phase==="planned"'),"Atlas must visually mark planned POIs");
+assert.ok(html.indexOf('src="world-layout.js"')<html.indexOf('src="ui-world-map.js"'),
+  "Layout module must load before Atlas UI");
 const clear=nav.findPath({x:0,z:0},{x:14,z:0},()=>false);
 assert.ok(clear.length>0,"Path to open terrain must exist");
 const isBlocked=(x,z,pad=0)=>Math.hypot(x-6,z)<3+pad;
