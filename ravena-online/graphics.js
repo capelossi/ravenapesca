@@ -88,13 +88,13 @@
       const preset=QUALITY[next];quality=next;
       engine.setHardwareScalingLevel(mobile()?preset.scaleMobile:preset.scaleDesktop);
       scene.fogDensity=preset.fog;
+      // Babylon's scene switch reliably disables shadow passes on low-end GPUs.
+      scene.shadowsEnabled=preset.shadows;
       const map=shadows?.getShadowMap();
       if(map){
-        map.renderList=map.renderList||[];
         shadows.setDarkness(.24);
         shadows.useBlurExponentialShadowMap=preset.shadows;
         shadows.blurKernel=preset.shadows?(next==="ultra"?16:8):0;
-        shadows.getShadowMap().isEnabled=preset.shadows;
       }
       if(preset.glow){
         if(!glow)glow=new B.GlowLayer("realce mágico",scene,{blurKernelSize:24});
