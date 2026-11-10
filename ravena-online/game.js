@@ -90,6 +90,14 @@
   let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
   let totalFish=0,totalOre=0,targetUntil=0,lastEnemyHit=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
+  // O Atlas usa IDs e pontos de interesse independentes do motor de renderização.
+  const atlas=globalThis.RavenaMapUI.create({
+    onNavigate:place=>{
+      const accepted=goto(place.x,place.z);
+      if(accepted)toast("Caminhando até: "+place.name+". Sem teleporte.",4);
+      return accepted;
+    }
+  });
   const bounded=(x,z)=> Math.abs(x)<88 && Math.abs(z)<88;
   function obstacle(x,z,r){obstacles.push({x,z,r});}
   function blocked(x,z,pad=.65) {
@@ -441,15 +449,16 @@
     ).map(p=>new B.Vector3(p.x,0,p.z));
   }
   function goto(x,z){
-    if(!hero||dialogueOpen||fishing)return;
+    if(!hero||dialogueOpen||fishing)return false;
     const start=hero.position, target=new B.Vector3(x,0,z);
     const candidate=route(start,target);
-    if(!candidate.length){toast("Este local está bloqueado.");return;}
+    if(!candidate.length){toast("Não foi possível traçar uma rota até este ponto.");return false;}
     path=candidate;marker.position.x=path[path.length-1].x;
     marker.position.z=path[path.length-1].z;
     markerInner.position.x=marker.position.x;markerInner.position.z=marker.position.z;
     marker.setEnabled(true);markerInner.setEnabled(true);
     nextInteraction=null;
+    return true;
   }
   const damageRange=()=>combat.classDefinition(config?.kind).range;
   function showTarget(enemy){
@@ -540,7 +549,7 @@
   function toggleBag(force){
     const visible=force??$("inventory-panel").classList.contains("hidden");
     $("inventory-panel").classList.toggle("hidden",!visible);
-    if(visible)renderBag();
+    if(visible){atlas.close();renderBag();}
   }
   function addItem(key,count=1){
     if(!(key in bag))return;
@@ -622,6 +631,7 @@
       save();
     }
     const p=hero.position;
+    if(atlas.visible)atlas.update(p.x,p.z,region.id);
     $("map-player").style.left=(50+p.x/90*40)+"%";
     $("map-player").style.top=(50+p.z/90*40)+"%";
   }
@@ -650,7 +660,14 @@
   }
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
-  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · E: conversar · J: crônicas · 1: atacar · 2: especial · 3: mochila · 4: forjar/minerar · 5: pescar",7));
+  $("button-help").addEventListener("click",()=>toast("Clique/toque: mover · M: mapa do mundo · E: NPC · J: crônicas · 1: ataque · 2: habilidade · 3: mochila · 4: forja · 5: pesca",7));
+  $("button-map").addEventListener("click",()=>{
+    toggleBag(false);
+    $("settings-panel").classList.add("hidden");
+    globalThis.RavenaJournal?.close();
+    if(hero)atlas.update(hero.position.x,hero.position.z,currentZone);
+    atlas.toggle();
+  });
   function qualityUI(){
     const descriptions={
       leve:"Leve: resolução reduzida, sem sombras complexas ou brilho.",
@@ -671,12 +688,12 @@
   }));
   $("button-settings").addEventListener("click",()=>{
     const panel=$("settings-panel");panel.classList.toggle("hidden");
-    if(!panel.classList.contains("hidden")){toggleBag(false);globalThis.RavenaJournal?.close();}
+    if(!panel.classList.contains("hidden")){atlas.close();toggleBag(false);globalThis.RavenaJournal?.close();}
     qualityUI();
   });
   $("settings-close").addEventListener("click",()=>$("settings-panel").classList.add("hidden"));
   $("button-journal").addEventListener("click",()=>{
-    toggleBag(false);
+    atlas.close();toggleBag(false);
     globalThis.RavenaJournal?.toggle(quest,currentZone);
   });
   $("button-profile").addEventListener("click",()=>toast(config.name+" · "+config.kind+" · Nível "+level+" | "+totalFish+" peixes · "+totalOre+" minérios coletados.",5));
@@ -762,11 +779,18 @@
     if(e.key==="2")special();
     if(e.key==="3"||e.key.toLowerCase()==="i")toggleBag();
     if(e.key.toLowerCase()==="j"){
-      toggleBag(false);globalThis.RavenaJournal?.toggle(quest,currentZone);
+      atlas.close();toggleBag(false);globalThis.RavenaJournal?.toggle(quest,currentZone);
+    }
+    if(e.key.toLowerCase()==="m"){
+      toggleBag(false);
+      $("settings-panel").classList.add("hidden");
+      globalThis.RavenaJournal?.close();
+      atlas.update(hero.position.x,hero.position.z,currentZone);
+      atlas.toggle();
     }
     if(e.key==="4")forgeAction();
     if(e.key==="5")fishAction();
-    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();$("settings-panel").classList.add("hidden");}
+    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();atlas.close();$("settings-panel").classList.add("hidden");}
   });
   // Pointer only moves on a ground hit; picking characters can never teleport the player.
   let down=null;
