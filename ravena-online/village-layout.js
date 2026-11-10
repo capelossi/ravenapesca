@@ -7,7 +7,7 @@
     summary:"Cidade portuária independente da capital, ligada pela Estrada das Lanternas.",
     plaza:{x:35,z:-13,radius:5.2},
     water:{x:55,z:1,shoreRadius:24,outerRadius:21,innerRadius:18,collisionRadius:20.25},
-    pier:{startX:31,endX:43,z:1,halfWidth:2.15,plankCount:7},
+    pier:{startX:31,endX:43.8,z:1,halfWidth:2.15,plankCount:7},
     lighthouse:{id:"farol-mares",x:48,z:24,height:9,radius:2.45,approach:{x:43,z:19}},
     buildings:[
       {id:"prefeitura-mares",name:"Prefeitura da Vila",kind:"townhall",
