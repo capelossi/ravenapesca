@@ -43,7 +43,19 @@ try{
     // Macro atlas: cities, POI states and on-foot movement, not teleportation.
     await page.locator("#button-map").click();
     await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
-    assert.equal(await page.locator(".atlas-poi-button").count(),15);
+    assert.equal(await page.locator(".atlas-poi-button").count(),17);
+    // Capital refinement: three built landmarks and the relocated fair.
+    for(const [id,title] of [
+      ["guilda-aventureiros","Guilda dos Aventureiros"],
+      ["estalagem-corvo","Estalagem Corvo Dourado"],
+      ["palacio-conselho","Palácio do Conselho"],
+      ["mercado-azarath","Mercado de Azarath"]
+    ]){
+      await page.locator('[data-place="'+id+'"]').click();
+      assert.equal(await page.locator("#atlas-place-name").innerText(),title);
+      assert.equal(await page.locator("#atlas-navigate").isEnabled(),true,
+        "Capital landmark should have an on-foot approach: "+id);
+    }
     await page.locator('[data-place="praca-redes"]').click();
     assert.equal(await page.locator("#atlas-place-name").innerText(),"Praça das Redes");
     await page.locator('[data-place="pousada-vila"]').click();
@@ -61,7 +73,7 @@ try{
     assert.equal(saved?.config?.name,"Testador");
     assert.ok(saved?.level>=1);
     assert.equal(errors.length,0,profile.name+": browser errors: "+errors.join(" | "));
-    console.log("PASS "+profile.name+" startup, atlas routes, HUD, quality, inventory, journal, attack and save");
+    console.log("PASS "+profile.name+" startup, refined capital, atlas routes, HUD, quality, inventory, journal, attack and save");
     total++;
     await context.close();
   }
