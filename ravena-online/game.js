@@ -830,6 +830,27 @@
       $("interaction").classList.toggle("hidden",!nearby||dialogueOpen);
       if(now-lastSave>12000){save();lastSave=now;}
     }else camera.target=B.Vector3.Lerp(camera.target,new B.Vector3(0,1.6,0),Math.min(1,dt*3));
+    const heroPosition=hero?{x:hero.position.x,z:hero.position.z}:null;
+    const zone=hero?area(hero.position.x,hero.position.z):null;
+    enemies.tick(dt,now,heroPosition,zone,(damage,mob)=>{
+      if(!hero||dialogueOpen)return;
+      hp=Math.max(0,hp-damage);
+      lastEnemyHit=now;
+      enemies.ring(hero.position.x,hero.position.z,m.fire,now,340);
+      updateStats();
+      if(hp<=0){
+        path=[];fishing=null;marker.setEnabled(false);markerInner.setEnabled(false);
+        hero.position.set(world.start.x,0,world.start.z);
+        hp=100+Math.max(0,level-1)*15;
+        mp=100+Math.max(0,level-1)*10;
+        toast("Você desmaiou diante de "+mob.label+" e retornou à Capital. Seu progresso foi preservado.",6);
+        save();
+      }else toast(mob.label+" atingiu você: -"+damage+" de vida.",2);
+    });
+    enemies.animateEffects(now);
+    if(targetUntil&&now>targetUntil){
+      $("combat-target").classList.add("hidden");targetUntil=0;
+    }
     for(const npc of interactables)animateActor(npc.root,pulse*.72+npc.x*.5,false);
     for(const r of waterRipples){
       const phase=pulse*.52+r.offset;
@@ -846,6 +867,8 @@
     if(hero&&now-lastHudTick>500){
       if(mp<100+Math.max(0,level-1)*10)
         mp=Math.min(100+Math.max(0,level-1)*10,mp+1.25);
+      if(now-lastEnemyHit>7000&&hp<100+Math.max(0,level-1)*15)
+        hp=Math.min(100+Math.max(0,level-1)*15,hp+(zone?.kind==="city"?2:1));
       updateStats();lastHudTick=now;
     }
     if(toastUntil&&now>toastUntil){$("toast").classList.add("hidden");toastUntil=0;}
