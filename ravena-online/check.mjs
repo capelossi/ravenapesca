@@ -14,8 +14,12 @@ const game=readFileSync(join(dir,"game.js"),"utf8");
 const worldSource=readFileSync(join(dir,"world-data.js"),"utf8");
 const chronicles=readFileSync(join(dir,"ui-chronicles.js"),"utf8");
 const navigation=readFileSync(join(dir,"navigation.js"),"utf8");
+const graphics=readFileSync(join(dir,"graphics.js"),"utf8");
+const combatSource=readFileSync(join(dir,"combat-rules.js"),"utf8");
+const enemiesSource=readFileSync(join(dir,"enemies.js"),"utf8");
 
-for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js"]){
+for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js",
+  "graphics.js","combat-rules.js","enemies.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
 const scope={};
@@ -25,6 +29,14 @@ assert.ok(world,"World registry must be loaded");
 runInNewContext(navigation,{globalThis:scope});
 const nav=scope.RavenaNavigation;
 assert.ok(nav && typeof nav.findPath==="function","Reusable navigation module missing");
+runInNewContext(graphics,{globalThis:scope});
+runInNewContext(combatSource,{globalThis:scope});
+runInNewContext(enemiesSource,{globalThis:scope});
+const combat=scope.RavenaCombat;
+assert.ok(combat,"Combat rules module missing");
+assert.ok(scope.RavenaEnemies?.create,"Enemy runtime module missing");
+assert.ok(scope.RavenaVisuals?.create,"Graphics module missing");
+assert.deepEqual(Object.keys(scope.RavenaVisuals.QUALITY),["leve","equilibrado","ultra"]);
 
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 const referenced=[...game.matchAll(/\$\("([^"]+)"\)/g)].map(match=>match[1]);
@@ -36,6 +48,8 @@ for(const action of actions)
 
 for(const id of ["inventory-panel","inventory-items","button-inventory","inventory-close",
  "chronicle-panel","chronicle-content","chronicle-close","button-journal","quest-chapter",
+ "settings-panel","settings-close","button-settings","graphics-fps","graphics-description",
+ "combat-target","target-name","target-fill","target-hp",
  "world","creation","hud"])
   assert.ok(ids.has(id),"Essential UI element missing: "+id);
 
@@ -49,6 +63,8 @@ for(const phrase of ["function animateActor(","function fishAction(","function f
 assert.ok(game.includes('m.npcRing.alpha=.25'),"NPC rings must use their own material");
 assert.ok(!game.includes("light.material.alpha=.22"),"Do not change shared gold material opacity");
 assert.ok(css.includes(".inventory-panel"),"Inventory styling missing");
+assert.ok(css.includes(".settings-panel"),"Graphics settings styles missing");
+assert.ok(css.includes(".combat-target"),"Target HUD styles missing");
 assert.ok(html.includes("babylon.js"),"Babylon.js dependency missing");
 
 assert.ok(html.includes('<script src="world-data.js"></script>'),"World manifest must load first");
@@ -56,9 +72,17 @@ assert.ok(html.indexOf('src="world-data.js"')<html.indexOf('src="game.js"'),
   "World manifest must load before the game");
 assert.ok(html.includes('<script src="ui-chronicles.js"></script>'),"Journal module missing");
 assert.ok(html.includes('<script src="navigation.js"></script>'),"Navigation module missing");
+for(const src of ["graphics.js","combat-rules.js","enemies.js"]){
+  assert.ok(html.includes('<script src="'+src+'"></script>'),"Missing module "+src);
+  assert.ok(html.indexOf('src="'+src+'"')<html.indexOf('src="game.js"'),
+    "Modules must load before game: "+src);
+}
 assert.ok(html.indexOf('src="navigation.js"')<html.indexOf('src="game.js"'),
   "Navigation must load before game");
 assert.ok(game.includes("RavenaNavigation.findPath"),"Game must use modular pathfinding");
+assert.ok(game.includes("RavenaEnemies.create"),"Game must instantiate enemy runtime");
+assert.ok(game.includes("RavenaVisuals.create"),"Game must initialize graphics settings");
+assert.ok(game.includes("enemies.tick(dt"),"Enemy AI must run in gameplay loop");
 assert.ok(css.includes(".chronicle-panel"),"Journal styles missing");
 assert.ok(game.includes("for(const npc of world.npcs)"),"NPCs must be data-driven");
 assert.ok(game.includes("if(npc.id)advanceStory"),"Narrative must depend on NPC ids");
@@ -73,6 +97,21 @@ const unique=(values)=>new Set(values).size===values.length;
 assert.ok(unique(world.regions.map(x=>x.id)),"Region IDs must be unique");
 assert.ok(unique(world.npcs.map(x=>x.id)),"NPC IDs must be unique");
 assert.ok(unique(world.story.stages.map(x=>x.id)),"Quest IDs must be unique");
+assert.ok(Array.isArray(world.enemies)&&world.enemies.length>=3,"Enemy spawns missing");
+assert.ok(unique(world.enemies.map(x=>x.id)),"Enemy spawn IDs must be unique");
+assert.equal(combat.classDefinition("mago").range,7,"Mage class range changed");
+assert.equal(combat.classDefinition("espadachim").basic,23,"Swordsman balance changed");
+assert.equal(combat.mobDefinition("wolf").label,"Lobo dos Sussurros");
+assert.ok(combat.aggro(3,"wolf")&& !combat.aggro(20,"wolf"),"Enemy detection incorrect");
+assert.ok(combat.melee(1.1,"golem")&&!combat.melee(6,"golem"),"Melee distance incorrect");
+assert.equal(combat.normalizeHp(-8,50),0);
+assert.equal(combat.normalizeHp(250,50),50);
+assert.equal(combat.loot("golem",.1).key,"ore");
+assert.equal(combat.loot("wolf",.99),null);
+for(const e of world.enemies){
+  assert.ok(combat.mobDefinition(e.kind),"Enemy has undefined type: "+e.kind);
+  assert.ok(Number.isFinite(e.x)&&Number.isFinite(e.z),"Invalid enemy position");
+}
 const regionById=new Map(world.regions.map(r=>[r.id,r]));
 const regionAt=(x,z)=>world.regions.find(r=>r.bounds &&
   x>=r.bounds.minX&&x<=r.bounds.maxX&&z>=r.bounds.minZ&&z<=r.bounds.maxZ)?.id
@@ -92,6 +131,10 @@ for(const region of world.regions){
 }
 for(const npc of world.npcs)
   assert.ok(regionById.has(regionAt(npc.x,npc.z)),"NPC outside of known world");
+for(const enemy of world.enemies){
+  const zone=regionById.get(regionAt(enemy.x,enemy.z));
+  assert.equal(zone.kind,"wilderness","Hostile creatures should not spawn inside safe towns");
+}
 for(const step of world.story.stages){
   const triggers=Array.isArray(step.trigger)?step.trigger:[step.trigger];
   for(const t of triggers){
@@ -136,4 +179,4 @@ for(const to of detour){
 assert.ok(!detour.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z)),
   "Paths must be finite coordinates");
 
-console.log("Ravena Online: world registry, narrative, navigation contract and UI checks passed.");
+console.log("Ravena Online: world, combat rules, graphics, enemy spawns, story and UI checks passed.");
