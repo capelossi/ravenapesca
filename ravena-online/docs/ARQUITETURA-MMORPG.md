@@ -5,7 +5,9 @@
 - `index.html` — interface, criação de personagem e telas.
 - `style.css` — interface responsiva.
 - `world-data.js` — registro de cidades, regiões, NPCs, posições, capítulo e expansões; **nenhum código de renderização**.
-- `game.js` — motor Babylon.js, mundo procedural atual, navegação A* simplificada e ações locais.
+- `navigation.js` — serviço de A* em grade com fila de prioridade, isolado do Babylon.js, candidato a substituição por NavMesh.
+- `game.js` — motor Babylon.js, mundo procedural atual, consumo do serviço de navegação e ações locais.
+- `ui-chronicles.js` — diário narrativo desacoplado do motor gráfico.
 - `check.mjs` — teste de sintaxe e contratos básicos, sem substituir testes em navegador.
 - `docs/BIBLIA-DO-MUNDO.md` — lore e direção criativa.
 
@@ -16,9 +18,9 @@
 
 **NPCs:** `id`, `name`, `x`, `z`, `kind`, `story`. Futuramente: `dialogueTreeId`, `shopId`, `scheduleId`, `factionId`, `spawnId`.
 
-**Missões:** `id`, `title`, `description`, `trigger`, `xp`, `notice`. O protótipo usa índice numérico + versão de schema para saves antigos; a versão em servidor deverá usar `questId` e `completedObjectiveIds`, com migrações para múltiplos ramos e coop.
+**Missões:** `id`, `title`, `description`, `trigger` (string **ou lista de gatilhos alternativos**), `xp`, `notice`. O protótipo usa índice numérico + versão de schema para saves antigos; a versão em servidor deverá usar `questId` e `completedObjectiveIds`, com migrações para múltiplos ramos e coop.
 
-**Eventos no protótipo:** `talk:<npc-id>`, `enter:<region-id>`, `fish:any`, `mine:any`, `craft:dagger`. Nunca usar texto visível como ID de negócio.
+**Eventos no protótipo:** `talk:<npc-id>`, `enter:<region-id>`, `fish:any`, `mine:any`, `craft:dagger`. Cada etapa pode aceitar eventos alternativos. Nunca usar texto visível como ID de negócio.
 
 ## Mapa em escala
 Em vez de um único mundo com todos os objetos carregados ao mesmo tempo, evoluir para:
@@ -61,7 +63,7 @@ Guild(id, leaderId, treasury, members)
 ```
 
 ## Backlog por etapas e critérios de aceite
-**Marco A — Mundo e enredo (ATUAL):** uma capital e uma vila vizinha, estrada contínua, NPCs com IDs e prólogo em progressão. Pronto para teste visual; precisa validação manual em desktop e mobile.
+**Marco A — Mundo e enredo (ATUAL):** uma capital e uma vila vizinha, estrada contínua, NPCs com IDs, missão com alternativas e diário de crônicas. Navegação A* modular; precisa validação manual em desktop e mobile.
 
 **Marco B — Vertical slice RPG:** uma cidade aprofundada; avatar GLB animado por classe; duas habilidades reais por classe; quatro tipos de inimigos com IA; inventário/equipamento jogável; profissões básicas; quests com escolhas; checkpoints. Critério: loop de 30 minutos sem comandos falsos.
 
