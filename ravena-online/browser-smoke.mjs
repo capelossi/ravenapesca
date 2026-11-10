@@ -59,9 +59,9 @@ try{
     }
     await page.locator('[data-place="praca-redes"]').click();
     assert.equal(await page.locator("#atlas-place-name").innerText(),"Praça das Redes");
-    await page.locator('[data-place="pousada-vila"]').click();
+    await page.locator('[data-place="santuario-aguas"]').click();
     assert.equal(await page.locator("#atlas-navigate").isDisabled(),true,
-      "Unbuilt destinations should not be navigable");
+      "Unbuilt sanctuary must not be navigable");
     // The player must ACTUALLY travel to the guild entrance, not teleport.
     await page.locator('[data-place="guilda-aventureiros"]').click();
     await page.locator("#atlas-navigate").click();
