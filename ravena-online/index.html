@@ -22,19 +22,19 @@
       <div class="quest-description" id="quest-description">Clique no chão para explorar a cidade.</div>
       <div class="divider"></div>
       <div class="legend"><span>●</span> Fale com os NPCs usando <kbd>E</kbd></div>
-      <div class="legend"><span>●</span> Caminhe até a região da pescaria</div>
-      <div class="legend"><span>●</span> Explore a montanha da forja</div>
+      <div class="legend"><span>●</span> Visite a cidade vizinha Vila das Marés</div>
+      <div class="legend"><span>●</span> Revele o mistério do farol e da forja</div>
     </aside>
     <aside class="minimap glass">
-      <div class="map-title">MAPA DE AZARATH</div>
+      <div class="map-title">REINO DE AZARATH</div>
       <div class="map-field">
         <span class="map-mark map-town" title="Capital">♜</span>
         <span class="map-mark map-forest" title="Floresta">♣</span>
-        <span class="map-mark map-lake" title="Lago">≈</span>
+        <span class="map-mark map-lake" title="Vila das Marés">⚓</span>
         <span class="map-mark map-forge" title="Forja">⚒</span>
         <div id="map-player" title="Você">◆</div>
       </div>
-      <div class="map-hint">Uma região conectada, sem telas de carregamento.</div>
+      <div class="map-hint">Capital ↔ Vila das Marés • via estrada</div>
     </aside>
     <div class="interaction glass hidden" id="interaction">Pressione <kbd>E</kbd> para conversar</div>
     <div class="toast hidden" id="toast" role="status"></div>
@@ -94,6 +94,7 @@
   </div>
   <div id="dialogue" class="dialogue glass hidden"><strong id="npc-name"></strong><p id="npc-text"></p><button id="dialogue-close">Continuar ↗</button></div>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="world-data.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
