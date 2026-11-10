@@ -61,6 +61,8 @@ assert.ok(html.indexOf('src="navigation.js"')<html.indexOf('src="game.js"'),
 assert.ok(game.includes("RavenaNavigation.findPath"),"Game must use modular pathfinding");
 assert.ok(css.includes(".chronicle-panel"),"Journal styles missing");
 assert.ok(game.includes("for(const npc of world.npcs)"),"NPCs must be data-driven");
+assert.ok(game.includes("if(npc.id)advanceStory"),"Narrative must depend on NPC ids");
+assert.ok(!game.includes("n.name===npc.name"),"Narrative must not depend on translated display names");
 assert.ok(game.includes("world.settlements"),"Village buildings must be data-driven");
 assert.ok(game.includes('advanceStory("enter:"+region.id)'),"Zone events must drive story");
 assert.ok(game.includes('advanceStory("fish:any")'),"Fishing must have narrative event");
