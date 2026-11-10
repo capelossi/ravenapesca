@@ -107,6 +107,8 @@ assert.ok(game.includes("RavenaMapUI.create"),"Game must initialize world atlas"
 assert.ok(game.includes("RavenaCapitalScene.create"),"Game must initialize Capital scene renderer");
 assert.ok(game.includes("for(const building of cityLayout.buildings)"),
   "Capital obstacles must be registered separately from decorative meshes");
+assert.ok(game.includes("obstacleBox(building.x,building.z,building.width,building.depth)"),
+  "Capital should use rectangular rather than circular building collisions");
 assert.ok(game.includes('if(atlas.visible)atlas.update'),"Player marker must follow position");
 assert.ok(game.includes('onTrail(x,z'),"Roads must clear vegetation and obstacles");
 assert.ok(game.includes('gate pier'),"South city gate must remain traversable");
@@ -239,14 +241,17 @@ assert.ok(html.indexOf('src="world-layout.js"')<html.indexOf('src="ui-world-map.
   "Layout module must load before Atlas UI");
 // Route test uses the authored architectural blockers and known legacy
 // public fixtures; it does not replace collision tests in Chromium.
-const cityBlockers=[
- ...capital.buildings.map(b=>({x:b.x,z:b.z,r:Math.max(b.width,b.depth)*.52})),
+const cityBlocks=capital.buildings.map(b=>({
+  x:b.x,z:b.z,halfW:b.width/2,halfD:b.depth/2
+}));
+const cityCircles=[
  {x:-12,z:13,r:3.03},{x:12,z:13,r:2.7},{x:23,z:-8,r:2.25},
  {x:0,z:13,r:1.85},...capital.stalls.map(a=>({x:a.x,z:a.z,r:1.65}))
 ];
 const blockedCity=(x,z,pad=.65)=>
   Math.abs(x)>=88||Math.abs(z)>=88||
-  cityBlockers.some(b=>Math.hypot(x-b.x,z-b.z)<b.r+pad);
+  cityBlocks.some(b=>Math.abs(x-b.x)<b.halfW+pad&&Math.abs(z-b.z)<b.halfD+pad)||
+  cityCircles.some(b=>Math.hypot(x-b.x,z-b.z)<b.r+pad);
 for(const id of ["guilda-aventureiros","estalagem-corvo","palacio-conselho",
   "mercado-azarath","portao-sul"]){
   const poi=layout.places.find(p=>p.id===id);
