@@ -612,7 +612,9 @@
     if(!hero||dialogueOpen)return;
     if(fishing){toast("Aguarde o peixe morder a isca.");return;}
     const x=hero.position.x,z=hero.position.z;
-    if(x<29||x>40||Math.abs(z-1)>7){toast("Aproxime-se do píer do Lago da Mãe das Águas para pescar.");return;}
+    if(!village.inPier(x,z,.15)){
+      toast("Para pescar, caminhe até as tábuas do píer da Vila das Marés.");return;
+    }
     path=[];marker.setEnabled(false);markerInner.setEnabled(false);
     fishing={end:performance.now()+2700,x:hero.position.x,z:hero.position.z};
     toast("Você lançou a linha... Observe a água!",2.6);
