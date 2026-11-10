@@ -555,7 +555,7 @@
   }
   function save(){
     if(!hero||!config)return;
-    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({config,x:hero.position.x,z:hero.position.z,xp,level,quest,bag,totalFish,totalOre}));}catch{}
+    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({config,x:hero.position.x,z:hero.position.z,xp,level,quest,storySchema:world.schemaVersion,bag,totalFish,totalOre}));}catch{}
   }
   const bagCatalog=[
     ["ore","⛏","Minério bruto"],["dagger","⚔","Adaga forjada"],
@@ -601,6 +601,7 @@
       nearOre.shards.forEach(mesh=>mesh.setEnabled(false));
       const count=config.kind==="forjador"?3:2;
       addItem("ore",count);totalOre+=count;gainXP(7);
+      advanceStory("mine:any");
       toast("Mineração concluída! +"+count+" minério · +7 XP");
       return;
     }
@@ -609,6 +610,7 @@
       addItem("ore",-3);
       const count=config.kind==="forjador"?2:1;
       addItem("dagger",count);gainXP(18);
+      advanceStory("craft:dagger");
       toast("Você forjou "+count+" adaga"+(count>1?"s":"")+"! +18 XP");
       return;
     }
@@ -630,46 +632,53 @@
       roll<.80?["tilapia","Tilápia",12]:
       roll<.975?["carpa","Carpa",19]:["lendario","Peixe lendário",65];
     addItem(fish[0],1);totalFish++;gainXP(fish[2]);
+    advanceStory("fish:any");
     toast("Pescaria! Você capturou: "+fish[1]+" · +"+fish[2]+" XP",5);
   }
+  // Progresso narrativo guiado por gatilhos com IDs estáveis do catálogo.
+  // Não depende da profissão nem da ordem em que o jogador visita as cidades.
+  function advanceStory(trigger){
+    const stage=world.story.stages[quest];
+    if(!stage||stage.trigger!==trigger)return false;
+    quest++;
+    gainXP(stage.xp);
+    updateQuest();
+    toast(stage.notice,5);
+    save();
+    return true;
+  }
   function area(x,z){
-    if(x>27 && z>-25&&z<25)return "Lago da Mãe das Águas";
-    if(z>33)return "Montanhas da Forja";
-    if(x< -28 && z< -12)return "Floresta dos Sussurros";
-    return "Capital de Azarath";
+    return world.regions.find(region=>{
+      const b=region.bounds;
+      return !!b && x>=b.minX && x<=b.maxX && z>=b.minZ && z<=b.maxZ;
+    }) || world.regions.find(region=>region.id===world.start.region);
   }
   function updateZone(){
     if(!hero)return;
-    const z=area(hero.position.x,hero.position.z);
-    if(z!==currentZone){
-      currentZone=z;$("zone").textContent=z;
-      if(z==="Lago da Mãe das Águas"&&quest<2){quest=2;gainXP(15);toast("Nova região descoberta: "+z);}
-      else if(z==="Montanhas da Forja"&&quest<3){quest=3;gainXP(15);toast("Nova região descoberta: "+z);}
-      else toast(z,2);
-      updateQuest();save();
+    const region=area(hero.position.x,hero.position.z);
+    if(region.id!==currentZone){
+      currentZone=region.id;
+      $("zone").textContent=region.name;
+      toast(region.name,2);
+      advanceStory("enter:"+region.id);
+      save();
     }
     const p=hero.position;
     $("map-player").style.left=(50+p.x/90*40)+"%";
     $("map-player").style.top=(50+p.z/90*40)+"%";
   }
   function updateQuest(){
-    const titles=["O primeiro passo","Conheça Azarath","Além das muralhas","Um novo destino"];
-    const desc=[
-      "Fale com a Capitã Elyra, perto da praça central. Pressione E quando estiver perto.",
-      "Explore a capital e descubra o Lago da Mãe das Águas, a leste.",
-      "O mundo se expande. Encontre a forja ao sul e converse com o ferreiro.",
-      "Explore o mundo! Experimente atacar golens de treino com a tecla 1."
-    ];
-    $("quest-title").textContent=titles[Math.min(quest,3)];
-    $("quest-description").textContent=desc[Math.min(quest,3)];
+    const stage=world.story.stages[quest]||world.story.epilogue;
+    $("quest-title").textContent=stage.title;
+    $("quest-description").textContent=stage.description;
   }
   function talk(npc){
     if(!npc)return;
     dialogueOpen=true;path=[];marker.setEnabled(false);markerInner.setEnabled(false);
     $("npc-name").textContent=npc.name;$("npc-text").textContent=npc.story;
     $("dialogue").classList.remove("hidden");
-    if(npc.name==="Capitã Elyra"&&quest===0){quest=1;gainXP(20);updateQuest();}
-    else if(npc.give&&npc.name!=="Capitã Elyra"&&npc.name==="Mestre Ferreiro"&&quest>=2){quest=3;gainXP(npc.give);updateQuest();}
+    const record=world.npcs.find(n=>n.name===npc.name);
+    if(record)advanceStory("talk:"+record.id);
   }
   function interact(){
     if(!hero)return;
@@ -743,7 +752,8 @@
     if(hero){hero.dispose();}
     hero=makeActor(name,0,-3,selected,m["skin"+skin],m["hair"+hair],config);
     const sameSaved=saved?.config?.name===name&&saved?.config?.kind===selected;
-    if(sameSaved){level=Math.max(1,Number(saved.level)||1);xp=Math.max(0,Number(saved.xp)||0);quest=Math.max(0,Number(saved.quest)||0);
+    if(sameSaved){level=Math.max(1,Number(saved.level)||1);xp=Math.max(0,Number(saved.xp)||0);quest=saved.storySchema===world.schemaVersion?
+        Math.min(world.story.stages.length,Math.max(0,Number(saved.quest)||0)):0;
       bag=emptyBag();
       for(const key of Object.keys(bag))bag[key]=Math.max(0,Math.floor(Number(saved.bag?.[key])||0));
       totalFish=Math.max(0,Math.floor(Number(saved.totalFish)||0));
