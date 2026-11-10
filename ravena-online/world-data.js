@@ -66,7 +66,7 @@ globalThis.RavenaWorldData = Object.freeze({
       story:"A luz do farol voltou a acender depois de décadas. Basta observar seu reflexo sobre a água para perceber as figuras do mundo antigo. Você não precisa pescar para investigar: a pista está diante de todos que se aproximam."
     },
     {
-      id:"mercadora-naila", name:"Mercadora Naila", x:22, z:-26, kind:"forjador",
+      id:"mercadora-naila", name:"Mercadora Naila", x:30, z:-28, kind:"forjador",
       story:"O Mercado do Sal recebe peixes, ferramentas e mercadorias de Azarath. Quando a economia online estiver pronta, comerciantes e aventureiros poderão negociar aqui. Por enquanto, visite a mochila para conferir seus recursos."
     },
     {
