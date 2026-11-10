@@ -20,6 +20,28 @@
     },scene);
     beachRing.rotation.x=Math.PI/2;beachRing.position.set(water.x,.08,water.z);
     beachRing.material=m.sand;beachRing.isPickable=false;
+    // Fina linha de espuma, sem discos translúcidos excessivamente claros.
+    const foamMaterial=new B.StandardMaterial("vila espuma discreta",scene);
+    foamMaterial.diffuseColor=new B.Color3(.53,.69,.64);
+    foamMaterial.emissiveColor=new B.Color3(.06,.09,.09);
+    foamMaterial.specularColor=new B.Color3(.06,.12,.12);
+    foamMaterial.alpha=.46;
+    const foam=B.MeshBuilder.CreateTorus("vila espuma da margem",{
+      diameter:water.outerRadius*2-.25,thickness:.21,tessellation:72
+    },scene);
+    foam.rotation.x=Math.PI/2;
+    foam.position.set(water.x,.087,water.z);
+    foam.material=foamMaterial;foam.isPickable=false;
+    // Pedras e arbustos baixos na margem externa, sem colisão extra.
+    for(let i=0;i<17;i++){
+      const angle=i*Math.PI*2/17;
+      if(Math.abs(angle-Math.PI)<.30)continue; // espaço do píer
+      const r=water.shoreRadius+.25+(i%3)*.34;
+      const x=water.x+Math.cos(angle)*r,z=water.z+Math.sin(angle)*r;
+      const stone=sphere("vila seixos da margem",[x,.17,z],.40+(i%4)*.10,
+        i%3===0?m.sand:m.darkStone);
+      stone.scaling.y=.35;stone.isPickable=false;
+    }
 
     // A água só possui passarela no corredor exato do píer, nunca no lago inteiro.
     const pier=v.pier;
@@ -138,8 +160,8 @@
       hull.rotation.y=boat.rotation;
       const keel=make("barco borda",[boat.x,.56,boat.z],[2.42,.18,4.55],m.beams);
       keel.rotation.y=boat.rotation;
-      cyl("barco mastro",[boat.x,1.48,boat.z],.12,.14,2.9,m.trunk,8);
-      const sail=make("barco vela",[boat.x+.53,1.75,boat.z],[1.45,1.55,.08],m.white);
+      cyl("barco mastro",[boat.x,1.25,boat.z],.12,.14,2.45,m.trunk,8);
+      const sail=make("barco vela",[boat.x+.53,1.40,boat.z],[1.30,1.35,.08],m.white);
       sail.rotation.y=boat.rotation;
     }
 
