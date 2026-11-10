@@ -102,7 +102,8 @@
     o.position=new B.Vector3(...pos);o.material=material;o.receiveShadows=true;
     o.isPickable=false;
     if(collides)obstacle(pos[0],pos[2],Math.max(sz[0],sz[2])*.52);
-    shadows.addShadowCaster(o);
+    // Roads, cobblestones, windows and tiny props do not need shadow-map draws.
+    if(sz[1]>=1.25)shadows.addShadowCaster(o);
     return o;
   }
   function sphere(name,pos,d,material) {
