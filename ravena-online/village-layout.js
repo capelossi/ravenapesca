@@ -11,7 +11,7 @@
     lighthouse:{id:"farol-mares",x:48,z:24,height:9,radius:2.45,approach:{x:43,z:19}},
     buildings:[
       {id:"prefeitura-mares",name:"Prefeitura da Vila",kind:"townhall",
-        x:42,z:-18.5,width:7,depth:6,height:6.4,roof:"blue",approach:{x:42,z:-13.8},
+        x:42,z:-22.5,width:7,depth:6,height:6.4,roof:"blue",approach:{x:42,z:-17.7},
         description:"Conselho local, avisos de expedição e gestão do porto; interior futuro."},
       {id:"pousada-vila",name:"Pousada do Faroleiro",kind:"inn",
         x:52,z:-27,width:7,depth:5.2,height:5.9,roof:"red",approach:{x:52,z:-22.9},
