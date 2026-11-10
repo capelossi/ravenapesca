@@ -229,43 +229,92 @@
     if(rnd()>.6)flower(x,z);
   }
 
+  // Lightweight articulated character rig: separate shoulder/hip pivots permit walking
+  // and idle animation without external skeletal assets in the prototype.
   function makeActor(name,x,z,kind="mago",skin=m.skin0,hair=m.hair0){
-    const root=new B.TransformNode(name+" root",scene);root.position.set(x,0,z);
-    function part(mesh){mesh.parent=root;return mesh;}
+    const root=new B.TransformNode(name+" root",scene);
+    root.position.set(x,0,z);
     const clothing=kind==="mago"?m.robe:kind==="espadachim"?m.armor:m.leather;
-    const body=part(B.MeshBuilder.CreateCylinder(name+" torso",{diameterTop:1.02,diameterBottom:.83,height:1.65,tessellation:8},scene));
-    body.position.y=1.9;body.material=clothing;
-    const head=part(B.MeshBuilder.CreateSphere(name+" head",{diameter:.78,segments:12},scene));
-    head.position.y=3.04;head.material=skin;
-    const h=part(B.MeshBuilder.CreateSphere(name+" hair",{diameter:.83,segments:10},scene));
-    h.position.y=3.32;h.scaling.y=.53;h.material=hair;
-    const cap=part(B.MeshBuilder.CreateCylinder(name+" cloak",{diameterTop:.9,diameterBottom:1.65,height:1.7,tessellation:12},scene));
-    cap.position.set(0,1.57,-.3);cap.material=kind==="mago"?m.cape:kind==="espadachim"?m.red:m.wood;
+    function attach(mesh,parent,pos,material){
+      mesh.parent=parent;
+      if(pos)mesh.position.set(...pos);
+      if(material)mesh.material=material;
+      mesh.isPickable=false;
+      return mesh;
+    }
+    function cub(label,pos,dimensions,material,parent=root){
+      return attach(B.MeshBuilder.CreateBox(name+" "+label,
+        {width:dimensions[0],height:dimensions[1],depth:dimensions[2]},scene),parent,pos,material);
+    }
+    function ball(label,pos,d,material,parent=root){
+      return attach(B.MeshBuilder.CreateSphere(name+" "+label,{diameter:d,segments:12},scene),parent,pos,material);
+    }
+    function tube(label,pos,top,bottom,h,material,parent=root){
+      return attach(B.MeshBuilder.CreateCylinder(name+" "+label,
+        {diameterTop:top,diameterBottom:bottom,height:h,tessellation:11},scene),parent,pos,material);
+    }
+    const torso=tube("tailored coat",[0,1.95,0],1.02,.78,1.55,clothing);
+    const chest=cub("chest armor",[0,2.02,.25],[1,.54,.26],kind==="espadachim"?m.darkStone:m.leather);
+    cub("gold breastplate clasp",[0,2.31,.41],[.19,.18,.11],m.gold);
+    const belt=tube("waist belt",[0,1.24,0],.88,.88,.2,m.leather);
+    const buckle=cub("belt buckle",[0,1.24,.42],[.24,.18,.08],m.gold);
+    const head=ball("head",[0,3.1,.06],.86,skin);
+    const hairCap=ball("hair cap",[0,3.41,-.04],.91,hair);
+    hairCap.scaling.y=.58;
     for(const side of [-1,1]){
-      const leg=part(B.MeshBuilder.CreateCylinder(name+" leg",{diameter:.33,height:1.22,tessellation:8},scene));
-      leg.position.set(side*.27,.64,0);leg.material=m.black;
-      const arm=part(B.MeshBuilder.CreateCylinder(name+" arm",{diameter:.32,height:1.3,tessellation:8},scene));
-      arm.position.set(side*.74,1.95,0);arm.rotation.z=side*.15;arm.material=clothing;
-      const boot=part(B.MeshBuilder.CreateBox(name+" boot",{width:.42,height:.33,depth:.63},scene));
-      boot.position.set(side*.27,.19,.13);boot.material=m.leather;
+      const strand=ball("hair strand",[side*.37,3.06,-.24],.34,hair);
+      strand.scaling.y=1.55;
+      ball("eye",[side*.175,3.15,.444],.09,m.black);
+      ball("brow",[side*.17,3.27,.425],.065,hair);
     }
+    const nose=ball("nose",[0,3.03,.49],.115,skin);
+    nose.scaling.set(.75,1,1);
+    const capePivot=new B.TransformNode(name+" cape joint",scene);
+    capePivot.parent=root;capePivot.position.set(0,2.42,-.31);
+    const cape=tube("trailing cloak",[0,-.72,-.12],.98,1.82,1.69,
+      kind==="mago"?m.cape:kind==="espadachim"?m.red:m.wood,capePivot);
+    cape.scaling.z=.67;
+    const arms=[],legs=[];
+    for(const side of [-1,1]){
+      const legJoint=new B.TransformNode(name+" hip",scene);
+      legJoint.parent=root;legJoint.position.set(side*.28,1.18,0);
+      tube("leg",[0,-.49,0],.37,.31,.96,m.black,legJoint);
+      cub("boot",[0,-1.03,.16],[.43,.34,.63],m.leather,legJoint);
+      legs.push(legJoint);
+      const armJoint=new B.TransformNode(name+" shoulder",scene);
+      armJoint.parent=root;armJoint.position.set(side*.72,2.43,0);
+      tube("sleeve",[0,-.51,0],.38,.29,1.02,clothing,armJoint);
+      ball("glove",[0,-1.03,.02],.32,m.leather,armJoint);
+      arms.push(armJoint);
+      ball("shoulder plate",[side*.69,2.39,0],.53,kind==="espadachim"?m.stone:m.leather);
+    }
+    const rightArm=arms[1];
     if(kind==="mago"){
-      const staff=part(B.MeshBuilder.CreateCylinder(name+" staff",{diameter:.1,height:3.3,tessellation:7},scene));
-      staff.position.set(.92,1.6,.45);staff.material=m.wood;
-      const gem=part(B.MeshBuilder.CreateSphere(name+" gem",{diameter:.52,segments:12},scene));
-      gem.position.set(.92,3.42,.45);gem.material=m.lavender;
+      tube("arcane staff",[.12,-.16,.5],.1,.14,3.17,m.wood,rightArm);
+      const gem=ball("staff gem",[.12,1.43,.5],.52,m.lavender,rightArm);
+      ball("staff halo",[.12,1.43,.5],.69,m.gold,rightArm).scaling.y=.22;
     }else if(kind==="espadachim"){
-      const blade=part(B.MeshBuilder.CreateBox(name+" sword",{width:.18,height:2.1,depth:.22},scene));
-      blade.material=m.stone;blade.position.set(.95,1.23,.4);blade.rotation.z=-.18;
-      const guard=part(B.MeshBuilder.CreateBox(name+" guard",{width:.7,height:.13,depth:.17},scene));
-      guard.position.set(.83,.5,.4);guard.material=m.gold;
+      cub("blade",[.12,-1.63,.45],[.18,1.9,.22],m.stone,rightArm);
+      cub("crossguard",[.12,-.7,.45],[.68,.13,.22],m.gold,rightArm);
+      cub("hilt",[.12,-.42,.45],[.14,.5,.19],m.leather,rightArm);
     }else{
-      const handle=part(B.MeshBuilder.CreateCylinder(name+" hammer handle",{diameter:.13,height:1.9},scene));
-      handle.position.set(.96,1.35,.4);handle.material=m.wood;
-      const hammer=part(B.MeshBuilder.CreateBox(name+" hammer head",{width:.98,height:.43,depth:.43},scene));
-      hammer.position.set(.96,2.28,.4);hammer.material=m.darkStone;
+      tube("hammer handle",[.12,-.38,.48],.14,.14,1.8,m.wood,rightArm);
+      cub("hammer head",[.12,-1.28,.48],[1.02,.42,.52],m.darkStone,rightArm);
+      cub("hammer cap",[.12,-1.05,.48],[.38,.12,.58],m.gold,rightArm);
     }
+    root.metadata={rig:{arms,legs,capePivot,torso,baseY:torso.position.y},kind};
     return root;
+  }
+  function animateActor(actor,seconds,moving=false){
+    const rig=actor?.metadata?.rig;if(!rig)return;
+    const stride=moving?Math.sin(seconds*11)*.64:0;
+    rig.legs[0].rotation.x=stride;
+    rig.legs[1].rotation.x=-stride;
+    rig.arms[0].rotation.x=-stride*.65;
+    rig.arms[1].rotation.x=stride*.45;
+    rig.torso.position.y=rig.baseY+(moving?Math.abs(Math.sin(seconds*11))*.045:Math.sin(seconds*1.9)*.025);
+    rig.capePivot.rotation.x=.09+Math.sin(seconds*(moving?8:1.7))*(moving?.13:.035);
+    rig.capePivot.rotation.z=Math.sin(seconds*1.3)*.025;
   }
   function actorLabel(text,x,z,color="#f0dfb7"){
     const label=sign(text,x,z,color);
