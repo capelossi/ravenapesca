@@ -846,7 +846,9 @@
   canvas.addEventListener("touchend",()=>pinch=null,{passive:true});
   // Continuous movement with per-frame time, obstacle safety and smooth camera.
   engine.runRenderLoop(()=>{
-    const now=performance.now(),dt=Math.min((now-lastTime)/1000||.016,.05);lastTime=now;pulse+=dt;
+    // Delta adaptativo: em celulares lentos, um frame de 100–180ms deve
+    // avançar a caminhada proporcionalmente, sem tornar o jogo 3x mais lento.
+    const now=performance.now(),dt=Math.min((now-lastTime)/1000||.016,.18);lastTime=now;pulse+=dt;
     visuals.tick(dt);
     if(now-lastMove>1800){
       $("graphics-fps").textContent=Math.round(engine.getFps())+" FPS · "+visuals.quality.toUpperCase();
@@ -860,14 +862,22 @@
         const step=Math.min(d,speed*dt);
         if(d<=.09){path.shift();}
         else{
-          const xx=hero.position.x+dx/d*step,zz=hero.position.z+dz/d*step;
-          if(!blocked(xx,zz,.12)){
+          // Subpassos evitam atravessar objetos finos mesmo com FPS baixo.
+          const slices=Math.max(1,Math.ceil(step/.32));
+          const sx=dx/d*(step/slices),sz=dz/d*(step/slices);
+          let colliding=false;
+          for(let i=0;i<slices;i++){
+            const xx=hero.position.x+sx,zz=hero.position.z+sz;
+            if(blocked(xx,zz,.12)){colliding=true;break;}
             hero.position.x=xx;hero.position.z=zz;
             didMove=true;
+          }
+          if(colliding){path=[];toast("Caminho obstruído.");}
+          else{
             const angle=Math.atan2(dx,dz);
             let delta=(angle-hero.rotation.y+3*Math.PI)%(2*Math.PI)-Math.PI;
             hero.rotation.y+=delta*Math.min(1,dt*9);
-          }else {path=[];toast("Caminho obstruído.");}
+          }
         }
         if(!path.length){marker.setEnabled(false);markerInner.setEnabled(false);}
       }
