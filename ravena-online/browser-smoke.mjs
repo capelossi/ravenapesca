@@ -19,7 +19,8 @@ try{
     const page=await context.newPage(),errors=[];
     page.on("pageerror",error=>errors.push(error.message));
     page.on("console",message=>{if(message.type()==="error")errors.push("Console: "+message.text());});
-    await page.goto(URL,{waitUntil:"domcontentloaded",timeout:40000});
+    const debugUrl=URL+(URL.includes("?")?"&":"?")+"debug=1";
+    await page.goto(debugUrl,{waitUntil:"domcontentloaded",timeout:40000});
     await page.waitForFunction(()=>Boolean(window.BABYLON),{timeout:20000});
     await page.locator("#name").fill("Testador");
     await page.locator("#start").click();
@@ -61,6 +62,18 @@ try{
     await page.locator('[data-place="pousada-vila"]').click();
     assert.equal(await page.locator("#atlas-navigate").isDisabled(),true,
       "Unbuilt destinations should not be navigable");
+    // The player must ACTUALLY travel to the guild entrance, not teleport.
+    await page.locator('[data-place="guilda-aventureiros"]').click();
+    await page.locator("#atlas-navigate").click();
+    await page.waitForFunction(()=>{
+      const p=window.RavenaAlphaDebug?.snapshot();
+      return p && Math.hypot(p.x+15,p.z+9.5)<1.8;
+    },{timeout:17000});
+    const position=await page.evaluate(()=>window.RavenaAlphaDebug?.snapshot());
+    assert.equal(position.blockedAtHero,false,
+      profile.name+": actor is inside an obstacle after walking to the guild");
+    await page.locator("#button-map").click();
+    await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
     await page.locator('[data-place="praca-redes"]').click();
     await page.locator("#atlas-navigate").click();
     await page.locator("#world-map-panel.hidden").waitFor({state:"hidden",timeout:10000});
@@ -73,7 +86,7 @@ try{
     assert.equal(saved?.config?.name,"Testador");
     assert.ok(saved?.level>=1);
     assert.equal(errors.length,0,profile.name+": browser errors: "+errors.join(" | "));
-    console.log("PASS "+profile.name+" startup, refined capital, atlas routes, HUD, quality, inventory, journal, attack and save");
+    console.log("PASS "+profile.name+" startup, capital movement, atlas routes, HUD, quality, inventory, journal, attack and save");
     total++;
     await context.close();
   }
