@@ -7,7 +7,7 @@
 1. Abra `ravena-online/index.html` em uma hospedagem estática (Cloudflare Pages/GitHub Pages).
 2. Conexão à internet é necessária para carregar Babylon.js pela CDN.
 3. Selecione **Mago**, **Espadachim** ou **Forjador**, escolha nome, pele e cabelo.
-4. Clique no terreno para caminhar. Um marcador mostra o destino; o personagem tenta contornar objetos via grade de pathfinding A*.
+4. Clique no terreno para caminhar. Um marcador mostra o destino; o personagem tenta contornar objetos com o serviço modular de navegação A*.
 5. Aproxime-se de NPCs e pressione **E** para conversar. Pressione **1** perto dos golens para combater.
 6. Saia da Capital de Azarath e siga a Estrada das Lanternas a leste: a **Vila das Marés é uma cidade vizinha**, com casas, mercado, prefeitura, cais e farol. Explore também a floresta a oeste e a forja ao sul.
 7. O personagem, classe, nível, XP, mochila, aparência, contadores e posição são salvos localmente no navegador.
@@ -49,9 +49,10 @@
 
 - `world-data.js` define IDs de regiões, cidades, NPCs, coordenadas, conexões, campanha, diálogos e futuras expansões separadamente do motor gráfico.
 - `ui-chronicles.js` cuida do diário sem misturar a renderização com os dados narrativos.
+- `navigation.js` implementa navegação A* por grade em módulo independente com fila de prioridade; futuramente será trocado por NavMesh por regiões.
 - `docs/BIBLIA-DO-MUNDO.md` traz história, facções, regiões, classes e os cinco atos planejados.
 - `docs/ARQUITETURA-MMORPG.md` define contratos do conteúdo, streaming futuro por zonas, multiplayer autoritativo, segurança e marcos de lançamento.
-- `node ravena-online/check.mjs` valida referências de interface, IDs, conexões e duas rotas narrativas; a GitHub Action executa esses testes em PRs.
+- `node ravena-online/check.mjs` valida sintaxe, referências de interface, IDs, conexões, duas rotas narrativas e desvios de obstáculos em navegação; a GitHub Action executa esses testes em PRs.
 
 A pescaria **não é um jogo separado**: é uma das atividades da Vila das Marés. O capítulo introdutório permite descobrir o mistério por meio do farol ou da pesca; também admite investigar a forja sem obrigar o jogador a fabricar armas.
 
