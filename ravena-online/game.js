@@ -62,6 +62,9 @@
   m.lantern=mat("warm lantern","#f3c577");
   m.lantern.emissiveColor=new B.Color3(.46,.27,.09);
   m.gold.specularColor=new B.Color3(.4,.3,.1);
+  m.npcRing=mat("npc interaction ring","#d6aa5b");
+  m.npcRing.alpha=.25;
+  m.npcRing.emissiveColor=new B.Color3(.35,.21,.05);
 
   const ground=B.MeshBuilder.CreateGround("clickable-ground",{width:184,height:184,subdivisions:2},scene);
   ground.material=m.ground;
@@ -109,9 +112,7 @@
     o.material=material;o.isPickable=false;return o;
   }
   function roof(x,z,w,d,y,material) {
-    const roof=B.MeshBuilder.CreateCylinder("roof",{diameterTop:0,diameterBottom:1,height:1,tessellation:4},scene);
-    roof.dispose();
-    const left=box("roof left",[x-w*.23,y+.12,z],[w*.57,.22,d+.5],material);
+     const left=box("roof left",[x-w*.23,y+.12,z],[w*.57,.22,d+.5],material);
     left.rotation.z=-.55;const right=box("roof right",[x+w*.23,y+.12,z],[w*.57,.22,d+.5],material);
     right.rotation.z=.55;
   }
@@ -383,7 +384,7 @@
   function addNPC(name,x,z,story,kind="forjador",give=0){
     const root=makeActor(name,x,z,kind,m.skin1,m.hair1);
     root.scaling.scaleInPlace(.86);
-    const light=disc(name+" ring",x,z,1.05,m.gold,.09);light.material.alpha=.22;
+    disc(name+" ring",x,z,1.05,m.npcRing,.09);
     interactables.push({name,x,z,root,story,give});
     actorLabel(name,x,z);
   }
