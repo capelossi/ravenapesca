@@ -15,6 +15,7 @@
       <div class="brand"><span class="brand-rune">✦</span> RAVENA <span class="brand-weak">ONLINE</span></div>
       <div class="server"><span class="green-dot"></span> PRÉ-ALFA · MODO SOLO</div>
       <div class="zone" id="zone">Capital de Azarath</div>
+      <div class="status-graphics" id="graphics-fps" aria-label="Desempenho">FPS —</div>
     </header>
     <aside class="quests glass">
       <div class="panel-title" id="quest-chapter">✧ O DESPERTAR</div>
@@ -36,6 +37,7 @@
       </div>
       <div class="map-hint">Capital ↔ Vila das Marés • via estrada</div>
     </aside>
+    <div class="combat-target glass hidden" id="combat-target" aria-live="polite"></div>
     <div class="interaction glass hidden" id="interaction">Pressione <kbd>E</kbd> para conversar</div>
     <div class="toast hidden" id="toast" role="status"></div>
     <section class="stats glass">
@@ -53,7 +55,18 @@
       <button class="skill" data-action="forge" title="Minerar ou forjar perto da oficina (4)"><span>⚒</span><small>4</small></button>
       <button class="skill" data-action="fish" title="Pescar perto do píer (5)"><span>🎣</span><small>5</small></button>
     </nav>
-    <div class="actions glass"><button id="button-journal" title="Diário de aventuras">▤ <span>Crônicas</span></button><button id="button-inventory" title="Mochila">▣ <span>Mochila</span></button><button id="button-profile" title="Ficha do personagem">☷ <span>Personagem</span></button><button id="button-help" title="Controles">? <span>Controles</span></button></div>
+    <div class="actions glass"><button id="button-settings" title="Gráficos e qualidade" aria-label="Configurações gráficas">⚙ <span>Gráficos</span></button><button id="button-journal" title="Diário de aventuras">▤ <span>Crônicas</span></button><button id="button-inventory" title="Mochila">▣ <span>Mochila</span></button><button id="button-profile" title="Ficha do personagem">☷ <span>Personagem</span></button><button id="button-help" title="Controles">? <span>Controles</span></button></div>
+    <section id="settings-panel" class="settings-panel glass hidden" aria-label="Gráficos e desempenho">
+      <div class="settings-header"><h2>⚙ Gráficos e desempenho</h2><button id="settings-close" aria-label="Fechar configurações">×</button></div>
+      <p>Escolha a qualidade para seu dispositivo. A opção Leve prioriza a fluidez; Ultra usa efeitos de luz adicionais.</p>
+      <div class="settings-presets" role="group" aria-label="Qualidade gráfica">
+        <button data-quality="leve" type="button">Leve</button>
+        <button data-quality="equilibrado" type="button">Alta</button>
+        <button data-quality="ultra" type="button">Ultra</button>
+      </div>
+      <p class="settings-note" id="graphics-description">O desempenho depende do dispositivo e do navegador.</p>
+      <p class="settings-note">Ciclo visual de dia, entardecer e noite. Sem influência nos itens ou no combate.</p>
+    </section>
     <section id="chronicle-panel" class="chronicle-panel glass hidden" aria-label="Diário de aventuras">
       <div class="chronicle-header"><div><span class="chronicle-eyebrow">REGISTRO DO REINO</span><h2>Crônicas de Azarath</h2></div><button id="chronicle-close" aria-label="Fechar crônicas">×</button></div>
       <div id="chronicle-content"></div>
@@ -99,6 +112,8 @@
   <div id="dialogue" class="dialogue glass hidden"><strong id="npc-name"></strong><p id="npc-text"></p><button id="dialogue-close">Continuar ↗</button></div>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="world-data.js"></script>
+  <script src="combat-rules.js"></script>
+  <script src="graphics.js"></script>
   <script src="navigation.js"></script>
   <script src="ui-chronicles.js"></script>
   <script src="game.js"></script>
