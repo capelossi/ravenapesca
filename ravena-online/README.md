@@ -25,6 +25,8 @@
 - Capital de Azarath e **Vila das Marés**, cidade portuária vizinha ligada por estrada caminhável, com casas, praça, bancas de mercado, porto, farol e o Lago da Mãe das Águas. Floresta e montanhas também estão representadas.
 - **Atlas do Reino (M)**: mapa interativo que apresenta quatro regiões, quatro estradas/trilhas e 22 marcos; mostra a posição do jogador e permite iniciar uma rota de caminhada para pontos do greybox. O mapa sinaliza construções futuras, mas não permite viajar até elas.
 - Rotas físicas alinhadas ao Atlas, com passagens livres nas trilhas e Portão Sul com abertura real.
+- Movimento com tempo proporcional ao FPS e colisão verificada em subpassos, para reduzir a lentidão em dispositivos mais fracos.
+- Aproximadamente 495 pequenas pedras do calçamento são agrupadas por material em duas malhas estáticas quando suportado, reduzindo draw calls.
 - **Vila das Marés redesenhada (Fase 1.3):** prefeitura, pousada, armazém, oficina naval, bairro dos pescadores, praça, duas bancas no mercado, farol, barcos e cais, com arquivos separados para planta e renderização. Lago possui colisão própria: o jogador pode caminhar pelo píer, mas não pelo fundo da água. O Santuário da Mãe das Águas fica reservado no Atlas (ainda não construído).
 - **Capital redesenhada (Fase 1.2):** prédios individuais de Guilda dos Aventureiros, Palácio do Conselho e Estalagem Corvo Dourado, com praças, bancas, avenidas, iluminação, acesso identificado e colisões retangulares na arquitetura nova. Os interiores ainda não estão disponíveis.
 - Onze NPCs e **Capítulo I — A Luz Sobre o Lago** com nove etapas, diálogos, exploração e dois caminhos possíveis para obter informações sem exigir pesca ou forja.
@@ -76,7 +78,7 @@
 - `docs/ARQUITETURA-MMORPG.md` define contratos do conteúdo, streaming futuro por zonas, multiplayer autoritativo, segurança e marcos de lançamento.
 - `docs/GRAFICOS-E-PRODUCAO.md` descreve a pipeline de assets GLB, materiais PBR, LOD e metas de qualidade.
 - `node ravena-online/check.mjs` valida sintaxe, referências de interface, IDs, conexões, duas rotas narrativas, combate, perfis gráficos e testes da simulação de zona.
-- `ravena-online/browser-smoke.mjs` executa testes de fluxo real em Chromium no desktop e no mobile por meio da GitHub Action (separada).
+- `ravena-online/browser-smoke.mjs` executa testes de fluxo real em Chromium no desktop e no mobile por meio da GitHub Action (separada). No CI, Babylon.js vem de dependência npm local para não depender da disponibilidade da CDN; no site publicado, o motor ainda carrega pela CDN.
 
 A pescaria **não é um jogo separado**: é uma das atividades da Vila das Marés. O capítulo introdutório permite descobrir o mistério por meio do farol ou da pesca; também admite investigar a forja sem obrigar o jogador a fabricar armas.
 
@@ -86,7 +88,7 @@ A pescaria **não é um jogo separado**: é uma das atividades da Vila das Maré
 - Pesca, mineração, forja e inventário **já têm loops demonstrativos locais**, mas ainda não há profissões profundas com progressão própria, missões completas, receitas avançadas, equipamentos utilizáveis ou economia entre jogadores.
 - Os personagens são representações 3D geométricas provisórias com animações articuladas simples; ainda não são modelos detalhados com animações esqueléticas, texturas PBR ou a personalização das referências visuais.
 - A navegação combina obstáculos circulares legados com **colisão retangular nos novos edifícios da capital e da vila**, além de bloqueio de água com exceção somente para o píer. Continua usando grade A*, sem NavMesh profissional. **O Atlas é um rascunho geográfico**; nem todas as rotas foram percorridas manualmente, e selecionar um destino pode falhar por obstáculos provisórios.
-- Testes automatizados não garantem jogabilidade final. O teste de navegador é separado e sua execução deve ser verificada no GitHub Actions. Ainda é necessário testar manualmente movimentação, colisões, desempenho e sensação de combate em dispositivos reais.
+- O smoke automatizado já percorreu **capital → praça da vila → píer e pesca** em desktop e viewport mobile simulada; isso não substitui validação manual das outras entradas, câmera, colisões, desempenho e sensação de combate em dispositivos reais.
 - A entrada roda em uma URL/pasta própria e não altera a página principal do PescaVena.
 - **Esta entrega não é um MMORPG de grande escala concluído.** Há apenas um protótipo conectado com duas cidades e duas regiões de exploração na mesma cena; os interiores, serviços de cidade, NPCs com rotinas, escolhas ramificadas reais e todo o backend MMORPG são futuros desenvolvimentos.
 
