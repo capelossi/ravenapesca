@@ -1,6 +1,6 @@
 # RAVENA ONLINE — Roteiro oficial da Fase 1: Mapa primeiro
 
-**Estado:** Fase 1.1 (macro/greybox) implementada em branch experimental, com ajustes e validação ainda necessários.  
+**Estado:** Fase 1.1 (macro/greybox) implementada; Fase 1.2 (refino da Capital) em andamento, em branch experimental. Ajustes e validação manual ainda necessários.  
 **Propósito:** construir e aprovar o mundo antes de substituir os personagens provisórios por modelos de produção.  
 **Definição:** a pescaria pertence à **Vila das Marés**, cidade vizinha da Capital de Azarath; não será uma tela ou jogo independente.
 
@@ -61,6 +61,8 @@ Os valores acima descrevem a estrutura de jogo; não são tempos estimados de vi
 
 **Prioridade de refinamento:** 1) acesso e escala; 2) circulação; 3) fachadas; 4) iluminação; 5) interações dos prédios. Não investir em decoração excessiva antes de confirmar as rotas.
 
+**Divisão técnica do trabalho:** `capital-layout.js` guarda a planta e os pontos de acesso; `capital-scene.js` gera o greybox de guilda, estalagem, palácio, praça, feira e iluminação. O Atlas usa as entradas externas como destinos caminháveis. Nenhum interior ou loja de jogadores está funcional ainda.
+
 ## 4. Vila das Marés — cidade vizinha da capital
 
 A vila é uma **cidade inteira**, não uma área de minigame. Seu lago é um destaque entre outros serviços e ofícios.
@@ -78,7 +80,7 @@ A vila é uma **cidade inteira**, não uma área de minigame. Seu lago é um des
 
 ## 5. Trilhas e navegação
 
-O arquivo **`world-layout.js`** contém os IDs das quatro regiões iniciais, quatro caminhos principais/locais e quinze pontos de interesse. O arquivo **`ui-world-map.js`** desenha o Atlas dentro do jogo. A tecla **M** e o botão **Mapa** abrem a interface; locais greybox podem solicitar rota **a pé, nunca teleporte**. Lugares planejados estão marcados e não oferecem rota.
+O arquivo **`world-layout.js`** contém os IDs das quatro regiões iniciais, quatro caminhos principais/locais e dezessete pontos de interesse. O arquivo **`ui-world-map.js`** desenha o Atlas dentro do jogo. A tecla **M** e o botão **Mapa** abrem a interface; locais greybox podem solicitar rota **a pé, nunca teleporte**. Lugares planejados estão marcados e não oferecem rota.
 
 O terreno possui estradas e trilhas provisórias derivadas do manifesto; árvores e rochas são evitadas nas trilhas de acesso. O Portão Sul possui abertura física, em vez de um bloco sólido. A navegação ainda usa grade A* e obstáculos aproximados: **NavMesh, colisões refinadas e QA com percursos longos virão antes de aprovar a fase**.
 
@@ -94,10 +96,14 @@ O terreno possui estradas e trilhas provisórias derivadas do manifesto; árvore
 - [ ] Validação sistemática das colisões e das bordas do lago.
 - [ ] Revisão de proporção e distância dos prédios antes de arte definitiva.
 
-### Fase 1.2 — Refinar a Capital
-- [ ] Planta da praça, guilda, mercado e muralhas com fachadas próprias.
-- [ ] Pontos de entrada dos prédios, circulação entre NPCs e áreas seguras.
-- [ ] Testes de câmera e de passagem dos personagens.
+### Fase 1.2 — Refinar a Capital (em andamento)
+- [x] Catálogo modular de três prédios de referência (guilda, estalagem e conselho), com IDs e entradas definidas.
+- [x] Fachadas de greybox, bandeiras, avenidas, bancas e iluminação para diferenciar os distritos.
+- [x] Acessos dos novos prédios no Atlas, com colisões retangulares nos blocos de arquitetura.
+- [x] Dois novos moradores com diálogos explicando os locais.
+- [ ] Validar manualmente a caminhada completa entre praça, guilda, mercado, estalagem, palácio e Portão Sul.
+- [ ] Ajustar fachadas, proporções, câmera, terreno e rotas a partir dos testes em dispositivos reais.
+- [ ] Construir os interiores e serviços apenas depois de aprovar as fachadas e entradas.
 
 ### Fase 1.3 — Refinar Vila das Marés e Lago
 - [ ] Separar visualmente praça, mercado, pousada, cais e farol.
