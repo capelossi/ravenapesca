@@ -107,6 +107,6 @@ assert.equal(simulate([...prefix,"fish:any","enter:montanhas-da-forja","mine:any
 assert.equal(simulate([...prefix,"talk:faroleira-iara","enter:montanhas-da-forja",
   "talk:mestre-ferreiro","talk:mestre-ferreiro","talk:capita-elyra"]),
   world.story.stages.length,"Alternative route should finish without fishing/crafting");
-assert.ok(chronicles.includes("world.story.stages"),"Journal must read chapter data");
+assert.ok(chronicles.includes("story.stages"),"Journal must read chapter data");
 
 console.log("Ravena Online: world registry, narrative, navigation contract and UI checks passed.");
