@@ -284,10 +284,12 @@
     obstacle(x,z,.85);
   }
 
-  function makeActor(name,x,z,kind="mago",skin=m.skin0,hair=m.hair0){
+  function makeActor(name,x,z,kind="mago",skin=m.skin0,hair=m.hair0,appearance={}){
     const root=new B.TransformNode(name+" root",scene);
     root.position.set(x,0,z);
     const clothing=kind==="mago"?m.robe:kind==="espadachim"?m.armor:m.leather;
+    const bodyType=appearance.bodyType==="masculino"?"masculino":"feminino";
+    const hairStyle=["longo","curto","trancas"].includes(appearance.hairStyle)?appearance.hairStyle:"longo";
     function attach(mesh,parent,pos,material){
       mesh.parent=parent;
       if(pos)mesh.position.set(...pos);
@@ -306,7 +308,7 @@
       return attach(B.MeshBuilder.CreateCylinder(name+" "+label,
         {diameterTop:top,diameterBottom:bottom,height:h,tessellation:11},scene),parent,pos,material);
     }
-    const torso=tube("tailored coat",[0,1.95,0],1.02,.78,1.55,clothing);
+    const torso=tube("tailored coat",[0,1.95,0],bodyType==="masculino"?1.14:.98,bodyType==="masculino"?.91:.75,1.55,clothing);
     const chest=cub("chest armor",[0,2.02,.25],[1,.54,.26],kind==="espadachim"?m.darkStone:m.leather);
     cub("gold breastplate clasp",[0,2.31,.41],[.19,.18,.11],m.gold);
     const belt=tube("waist belt",[0,1.24,0],.88,.88,.2,m.leather);
@@ -315,8 +317,13 @@
     const hairCap=ball("hair cap",[0,3.41,-.04],.91,hair);
     hairCap.scaling.y=.58;
     for(const side of [-1,1]){
-      const strand=ball("hair strand",[side*.37,3.06,-.24],.34,hair);
-      strand.scaling.y=1.55;
+      if(hairStyle!=="curto"){
+        const strand=ball("hair strand",[side*.37,3.06,-.24],hairStyle==="trancas"?.23:.34,hair);
+        strand.scaling.y=hairStyle==="trancas"?1.95:1.55;
+        if(hairStyle==="trancas"){
+          for(let t=0;t<3;t++)ball("braid knot",[side*.37,3.02-t*.20,-.24],.22,hair);
+        }
+      }
       ball("eye",[side*.175,3.15,.444],.09,m.black);
       ball("brow",[side*.17,3.27,.425],.065,hair);
     }
@@ -355,7 +362,7 @@
       cub("hammer head",[.12,-1.28,.48],[1.02,.42,.52],m.darkStone,rightArm);
       cub("hammer cap",[.12,-1.05,.48],[.38,.12,.58],m.gold,rightArm);
     }
-    root.metadata={rig:{arms,legs,capePivot,torso,baseY:torso.position.y},kind};
+    root.metadata={rig:{arms,legs,capePivot,torso,baseY:torso.position.y},kind,bodyType,hairStyle};
     return root;
   }
   function animateActor(actor,seconds,moving=false){
@@ -654,7 +661,7 @@
     else if(action==="fish")fishAction();
   }));
   const classes=document.querySelectorAll(".class");
-  let selected="mago",skin=0,hair=0;
+  let selected="mago",skin=0,hair=0,bodyType="feminino",hairStyle="longo";
   classes.forEach(button=>button.addEventListener("click",()=>{
     classes.forEach(b=>b.classList.remove("selected"));
     button.classList.add("selected");selected=button.dataset.class;
@@ -666,8 +673,24 @@
       if(variable==="skin")skin=Number(button.dataset.tone);else hair=Number(button.dataset.hair);
     }));
   }
+  document.querySelectorAll("[data-body]").forEach(button=>button.addEventListener("click",()=>{
+    bodyType=button.dataset.body;
+    document.querySelectorAll("[data-body]").forEach(b=>b.classList.toggle("selected",b===button));
+  }));
+  document.querySelectorAll("[data-style]").forEach(button=>button.addEventListener("click",()=>{
+    hairStyle=button.dataset.style;
+    document.querySelectorAll("[data-style]").forEach(b=>b.classList.toggle("selected",b===button));
+  }));
   const saved=(()=>{try{return JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null")}catch{return null}})();
   if(saved?.config?.name)$("name").value=saved.config.name;
+  if(["feminino","masculino"].includes(saved?.config?.bodyType)){
+    bodyType=saved.config.bodyType;
+    document.querySelectorAll("[data-body]").forEach(b=>b.classList.toggle("selected",b.dataset.body===bodyType));
+  }
+  if(["longo","curto","trancas"].includes(saved?.config?.hairStyle)){
+    hairStyle=saved.config.hairStyle;
+    document.querySelectorAll("[data-style]").forEach(b=>b.classList.toggle("selected",b.dataset.style===hairStyle));
+  }
   if(["mago","espadachim","forjador"].includes(saved?.config?.kind)){
     selected=saved.config.kind;
     classes.forEach(b=>b.classList.toggle("selected",b.dataset.class===selected));
@@ -683,9 +706,9 @@
   function start(){
     const name=$("name").value.trim();
     if(!/^[\p{L}\p{N}_]{3,16}$/u.test(name)){$("create-error").textContent="Use 3 a 16 letras, números ou _ no nome.";return;}
-    config={name,kind:selected,skin,hair};
+    config={name,kind:selected,skin,hair,bodyType,hairStyle};
     if(hero){hero.dispose();}
-    hero=makeActor(name,0,-3,selected,m["skin"+skin],m["hair"+hair]);
+    hero=makeActor(name,0,-3,selected,m["skin"+skin],m["hair"+hair],config);
     const sameSaved=saved?.config?.name===name&&saved?.config?.kind===selected;
     if(sameSaved){level=Math.max(1,Number(saved.level)||1);xp=Math.max(0,Number(saved.xp)||0);quest=Math.max(0,Number(saved.quest)||0);
       bag=emptyBag();
