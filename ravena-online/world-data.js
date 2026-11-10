@@ -116,6 +116,13 @@ globalThis.RavenaWorldData = Object.freeze({
       description:"Capítulo I concluído. Explore as cidades, aprimore profissões e prepare-se para a continuação da história."
     }
   },
+  enemies: [
+    {id:"lobo-sussurro-1",kind:"wolf",x:-40,z:-34,level:2},
+    {id:"lobo-sussurro-2",kind:"wolf",x:-54,z:-43,level:3},
+    {id:"eco-veu-1",kind:"spirit",x:-63,z:-60,level:5},
+    {id:"golem-forja-1",kind:"golem",x:27,z:54,level:4},
+    {id:"golem-forja-2",kind:"golem",x:-14,z:65,level:5}
+  ],
   plannedExpansion: [
     { id:"ruinas-do-veu", name:"Ruínas do Véu", level:[12,28], neighbor:"floresta-dos-sussurros", phase:"future" },
     { id:"deserto-de-selkar", name:"Deserto de Selkar", level:[25,45], neighbor:"montanhas-da-forja", phase:"future" },
