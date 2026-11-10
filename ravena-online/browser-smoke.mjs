@@ -78,10 +78,19 @@ try{
     await page.locator("#atlas-navigate").click();
     await page.locator("#world-map-panel.hidden").waitFor({state:"hidden",timeout:10000});
     assert.match(await page.locator("#toast").innerText(),/Caminhando até.*Praça das Redes/);
-    await page.waitForFunction(()=>{
-      const p=window.RavenaAlphaDebug?.snapshot();
-      return p && Math.hypot(p.x-35,p.z+14)<2.1;
-    },null,{timeout:20000});
+    try {
+      await page.waitForFunction(()=>{
+        const p=window.RavenaAlphaDebug?.snapshot();
+        return p && Math.hypot(p.x-35,p.z+14)<2.1;
+      },null,{timeout:20000});
+    } catch(error){
+      const progress=await page.evaluate(()=>({
+        hero:window.RavenaAlphaDebug?.snapshot(),
+        toast:document.querySelector("#toast")?.textContent,
+        fps:document.querySelector("#graphics-fps")?.textContent
+      }));
+      throw new Error("Capital → Vila stalled: "+JSON.stringify(progress)+" | "+error.message);
+    }
     assert.equal((await page.evaluate(()=>window.RavenaAlphaDebug.snapshot())).blockedAtHero,false);
     // Follow the coastal street and walk onto the real pier without entering water.
     await page.locator("#button-map").click();
