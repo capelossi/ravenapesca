@@ -113,7 +113,9 @@
           blockedAtHero:hero?blocked(hero.position.x,hero.position.z,.12):null,
           sanctuaryInside,blessingType:ravenaRules.active(blessing),
           bag:{...bag},coins
-        })
+        }),
+        // Diagnóstico: usa o A* normal, não teleporta ou injeta itens.
+        walkTo:(x,z)=>Number.isFinite(x)&&Number.isFinite(z)?goto(x,z):false
       }),
       writable:false,configurable:false
     });
