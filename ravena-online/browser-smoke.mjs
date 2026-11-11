@@ -72,7 +72,7 @@ try{
     // Macro atlas: cities, POI states and on-foot movement, not teleportation.
     await page.locator("#button-map").click();
     await page.locator("#world-map-panel:not(.hidden)").waitFor({state:"visible"});
-    assert.equal(await page.locator(".atlas-poi-button").count(),22);
+    assert.equal(await page.locator(".atlas-poi-button").count(),24);
     // Capital refinement: three built landmarks and the relocated fair.
     for(const [id,title] of [
       ["guilda-aventureiros","Guilda dos Aventureiros"],
