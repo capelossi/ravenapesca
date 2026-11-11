@@ -107,9 +107,33 @@ try {
     profile.name+": exit must restore forest portal position");
   assert.equal(returning.blessingType,"sabedoria",
     "Blessing must remain active after leaving the temple");
+  // Test the other critical effect (Fortuna) in the NPC market with a
+  // checkpoint loaded near Mercadora Naila. Other blessings are unit-tested.
+  await page.evaluate(()=>{
+    const save=JSON.parse(localStorage.getItem("ravena-online-alpha1"));
+    save.x=30;save.z=-32;save.sanctuaryInside=false;
+    save.blessing={type:"fortuna",expiresAt:Date.now()+600000};
+    localStorage.setItem("ravena-online-alpha1",JSON.stringify(save));
+  });
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.locator("#start").click();
+  await page.waitForFunction(()=>document.querySelector("#interaction")?.textContent
+    ?.includes("Mercado do Sal"),null,{timeout:17000});
+  await page.locator("#interaction").click();
+  await page.locator("#ravena-fish-market-panel:not(.hidden)").waitFor({state:"visible"});
+  assert.match(await page.locator("#ravena-coin-balance").innerText(),/0 moedas/);
+  await page.locator(".ravena-market-row").filter({hasText:"Lambari"})
+    .getByRole("button",{name:"Vender 1"}).click();
+  const trade=await page.evaluate(()=>JSON.parse(localStorage.getItem("ravena-online-alpha1")));
+  assert.equal(trade.coins,18,"Fortuna must increase 16 coins by 15% rounded");
+  assert.equal(trade.bag.lambari,0,"Selling must remove exactly one fish");
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.locator("#start").click();
+  const marketSave=await page.evaluate(()=>JSON.parse(localStorage.getItem("ravena-online-alpha1")));
+  assert.equal(marketSave.coins,18,"Market coins must persist");
   assert.equal(errors.length,0,profile.name+": "+errors.join(" | "));
   console.log("PASS "+profile.name+
-    " approved art, portal, temple route, offering, ten-minute blessing, save and exit");
+    " original art, portal, temple, altar, ten-minute save, exit and Fortuna market");
   await context.close();
  }
  console.log("Ravena legacy browser smoke: all viewports passed.");
