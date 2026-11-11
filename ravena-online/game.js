@@ -583,6 +583,7 @@
   }
   function attack(){
     if(!hero||dialogueOpen||fishing)return;
+    if(sanctuaryInside){toast("O Templo do Crepúsculo é uma área sagrada.");return;}
     const now=performance.now();
     if(now-lastAttackAt<650)return;
     if(strike(combat.classDefinition(config.kind).basic,damageRange(),"Ataque!"))
@@ -590,6 +591,7 @@
   }
   function special(){
     if(!hero||dialogueOpen||fishing)return;
+    if(sanctuaryInside){toast("A magia de combate descansa no templo.");return;}
     const now=performance.now();
     if(now-lastSpecialAt<2800){toast("Habilidade em recarga.");return;}
     if(mp<20){toast("Você precisa de 20 pontos de energia.");return;}
@@ -662,6 +664,7 @@
   }
   function forgeAction(){
     if(!hero||dialogueOpen||fishing)return;
+    if(sanctuaryInside){toast("As oficinas ficam fora do santuário.");return;}
     const x=hero.position.x,z=hero.position.z,now=performance.now();
     const nearOre=oreNodes.find(n=>Math.hypot(x-n.x,z-n.z)<5);
     if(nearOre){
@@ -687,24 +690,38 @@
   }
   function fishAction(){
     if(!hero||dialogueOpen)return;
+    if(sanctuaryInside){toast("Volte à Vila das Marés para pescar.");return;}
     if(fishing){toast("Aguarde o peixe morder a isca.");return;}
     const x=hero.position.x,z=hero.position.z;
     if(!village.inPier(x,z,.15)){
       toast("Para pescar, caminhe até as tábuas do píer da Vila das Marés.");return;
     }
     path=[];marker.setEnabled(false);markerInner.setEnabled(false);
-    fishing={end:performance.now()+2700,x:hero.position.x,z:hero.position.z};
-    toast("Você lançou a linha... Observe a água!",2.6);
+    // A pesca básica é gratuita, mas a isca extra obtida por bênção pode
+    // ser consumida para melhorar discretamente a raridade da captura.
+    const usedBait=(bag.bait||0)>0;
+    if(usedBait)bag.bait--;
+    fishing={end:performance.now()+2700,x:hero.position.x,z:hero.position.z,usedBait};
+    save();
+    toast(usedBait?"Linha lançada com isca especial!":"Você lançou a linha... Observe a água!",2.6);
   }
   function finishFishing(){
+    const usedBait=!!fishing?.usedBait;
     fishing=null;
-    const roll=Math.random();
+    const roll=ravenaRules.fishingRoll(Math.random()+(usedBait?.02:0),blessing);
     const fish=roll<.48?["lambari","Lambari",7]:
       roll<.80?["tilapia","Tilápia",12]:
       roll<.975?["carpa","Carpa",19]:["lendario","Peixe lendário",65];
-    addItem(fish[0],1);totalFish++;gainXP(fish[2]);
+    const earnedXp=ravenaRules.fishingXp(fish[2],blessing);
+    addItem(fish[0],1);
+    totalFish++;
+    gainXP(earnedXp);
+    const bonusBait=ravenaRules.earnBait(totalFish,blessing);
+    if(bonusBait)addItem("bait",bonusBait);
     advanceStory("fish:any");
-    toast("Pescaria! Você capturou: "+fish[1]+" · +"+fish[2]+" XP",5);
+    legacyUI?.refresh();
+    toast("Pescaria! "+fish[1]+" · +"+earnedXp+" XP"+
+      (bonusBait?" · 🌊 +1 isca da Ravena!":""),5);
   }
   // Progresso narrativo guiado por gatilhos com IDs estáveis do catálogo.
   // Não depende da profissão nem da ordem em que o jogador visita as cidades.
