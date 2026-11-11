@@ -115,7 +115,11 @@
           bag:{...bag},coins
         }),
         // Diagnóstico: usa o A* normal, não teleporta ou injeta itens.
-        walkTo:(x,z)=>Number.isFinite(x)&&Number.isFinite(z)?goto(x,z):false
+        walkTo:(x,z)=>Number.isFinite(x)&&Number.isFinite(z)?goto(x,z):false,
+        artLoaded:()=>({
+          mae:!!scene.getMeshByName("Mãe das Águas — escultura aprovada")?.isEnabled(),
+          ravena:!!scene.getMeshByName("Estátua da Ravena — arte legada")?.isEnabled()
+        })
       }),
       writable:false,configurable:false
     });
