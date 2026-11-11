@@ -111,14 +111,25 @@ try {
   // checkpoint loaded near Mercadora Naila. Other blessings are unit-tested.
   await page.evaluate(()=>{
     const save=JSON.parse(localStorage.getItem("ravena-online-alpha1"));
-    save.x=30;save.z=-32;save.sanctuaryInside=false;
+    save.x=30;save.z=-30;save.sanctuaryInside=false;
     save.blessing={type:"fortuna",expiresAt:Date.now()+600000};
     localStorage.setItem("ravena-online-alpha1",JSON.stringify(save));
   });
   await page.reload({waitUntil:"domcontentloaded"});
   await page.locator("#start").click();
-  await page.waitForFunction(()=>document.querySelector("#interaction")?.textContent
-    ?.includes("Mercado do Sal"),null,{timeout:17000});
+  try{
+    await page.waitForFunction(()=>document.querySelector("#interaction")?.textContent
+      ?.includes("Mercado do Sal"),null,{timeout:13000});
+  }catch(error){
+    const details=await page.evaluate(()=>({
+      snapshot:window.RavenaAlphaDebug?.snapshot(),
+      label:document.querySelector("#interaction")?.textContent,
+      className:document.querySelector("#interaction")?.className,
+      zone:document.querySelector("#zone")?.textContent,
+      saved:JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null")
+    }));
+    throw Error("Mercadora Naila not reachable: "+JSON.stringify(details)+" | "+error.message);
+  }
   await page.locator("#interaction").click();
   await page.locator("#ravena-fish-market-panel:not(.hidden)").waitFor({state:"visible"});
   assert.match(await page.locator("#ravena-coin-balance").innerText(),/0 moedas/);
