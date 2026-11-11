@@ -11,9 +11,22 @@
 5. Aproxime-se de NPCs e pressione **E** para conversar. Nas regiões selvagens, **1** executa ataque básico contra lobos, golens e ecos. **2** usa habilidade especial.
 6. Pressione **M** ou clique em **Mapa** para abrir o Atlas do Reino. Escolha um marco construído e clique em **Traçar caminho a pé**; o personagem caminhará pelo mapa, sem teleporte.
 7. Saia da Capital de Azarath e siga a Estrada das Lanternas a leste: a **Vila das Marés é uma cidade vizinha**, com casas, mercado, prefeitura, cais e farol. Explore também a floresta a oeste e a forja ao sul.
+   **Legado:** siga pela trilha da Floresta dos Sussurros até o Portal do Crepúsculo; entre, caminhe até o altar, ofereça um peixe e volte pelo portal próximo à entrada. A Mãe das Águas está no centro do lago e pode ser observada do Mirante.
 8. O personagem, classe, nível, XP, mochila, aparência, contadores e posição são salvos localmente no navegador.
 9. Caminhe até as tábuas do píer da Vila das Marés e pressione **5** (ou toque no ícone de pesca) para lançar a linha. Espere cerca de 3 segundos para capturar um peixe.
 10. Nas montanhas, aproxime-se dos cristais e pressione **4** para extrair minérios; perto das brasas da forja, pressione **4** para criar adagas usando 3 minérios. **Forjadores** ganham bônus de produção.
+
+## Conteúdo do legado restaurado (branch experimental)
+
+- **Mãe das Águas:** escultura da mãe abraçando a criança em pedestal submerso no centro do lago (sem ilha transitável), usando derivado WebP da arte original aprovada V6.4.36 e modelo geométrico caso o recurso não carregue. Mirante da Mãe das Águas aparece como local no Atlas.
+- **Templo do Crepúsculo:** portal acessível pela Floresta dos Sussurros, interior separado por camada de câmera, vitrais, altar, monumento da Ravena com ilustração original, saída e recuperação de posição ao carregar o save.
+- **Quatro bênçãos originais (V6.4.42):** Sorte (+3,5 pontos percentuais de raridade), Sabedoria (+20% XP por captura), Fortuna (+15% de moedas locais por venda) e Águas (+1 isca especial a cada dez capturas); 10 minutos de duração, apenas uma ativa de cada vez.
+- **Oferenda funcional:** diante do altar, selecione uma bênção e um peixe da mochila; a confirmação consome exatamente um peixe.
+- **Venda local:** a Mercadora Naila compra peixes no Mercado do Sal com saldo persistido apenas neste navegador; não é um comércio entre jogadores.
+- **Arte:** duas imagens aprovadas do ZIP V6.4.62 foram incorporadas como **billboards 2D transparentes no cenário 3D**, não como esculturas volumétricas modeladas; os originais completos permanecem no ZIP antigo.
+- **Compatibilidade:** os campos legados do `ravena-online-alpha1` são preservados; novos campos guardam moedas, bênção, iscas, estado do templo e ponto de retorno.
+
+Leia [documentação da restauração](docs/RESTAURACAO-CRITICA-LEGADO.md) antes de usar os novos sistemas.
 
 ## Recursos implementados nesta pré-alfa
 
@@ -23,7 +36,7 @@
 - Personagens procedurais com pivôs animados para pernas, braços, capa e respiração (ainda não são modelos 3D finais).
 - Praça com bancas de mercado, fonte, jardins e NPCs; cristais de minério e ondulações da água.
 - Capital de Azarath e **Vila das Marés**, cidade portuária vizinha ligada por estrada caminhável, com casas, praça, bancas de mercado, porto, farol e o Lago da Mãe das Águas. Floresta e montanhas também estão representadas.
-- **Atlas do Reino (M)**: mapa interativo que apresenta quatro regiões, quatro estradas/trilhas e 22 marcos; mostra a posição do jogador e permite iniciar uma rota de caminhada para pontos do greybox. O mapa sinaliza construções futuras, mas não permite viajar até elas.
+- **Atlas do Reino (M)**: mapa interativo que apresenta quatro regiões, quatro estradas/trilhas e 24 marcos; mostra a posição do jogador e permite iniciar uma rota de caminhada para pontos do greybox. O mapa sinaliza construções futuras, mas não permite viajar até elas.
 - Rotas físicas alinhadas ao Atlas, com passagens livres nas trilhas e Portão Sul com abertura real.
 - Movimento com tempo proporcional ao FPS e colisão verificada em subpassos, para reduzir a lentidão em dispositivos mais fracos.
 - Aproximadamente 495 pequenas pedras do calçamento são agrupadas por material em duas malhas estáticas quando suportado, reduzindo draw calls.
@@ -47,6 +60,9 @@
 | Andar | Clique ou toque no chão |
 | Zoom | Roda do mouse / gesto de pinça |
 | Falar com NPC próximo | E no PC ou botão **Conversar** na tela |
+| Entrar/sair do Templo do Crepúsculo | Aproximar-se do portal e usar E ou o botão contextual |
+| Oferenda à Ravena | Aproximar-se do altar e interagir, escolher bênção + peixe e confirmar |
+| Mercado local do peixe | Aproximar-se da Mercadora Naila na Vila das Marés e interagir |
 | Atacar inimigo próximo | 1 ou ícone de espada |
 | Habilidade especial (gasta energia) | 2 ou ícone de brilho |
 | Mochila | 3 ou I, ou ícone de mochila |
@@ -67,6 +83,10 @@
 - `capital-scene.js` interpreta esse catálogo como geometria 3D provisória; os modelos GLB finais poderão substituí-la sem alterar o mapa.
 - `village-layout.js` cataloga a cidade portuária (edifícios, acessos, píer, costa, farol) e define o corredor sólido que atravessa a água sem permitir andar pelo lago.
 - `village-scene.js` renderiza esses distritos e elementos de água, sem misturar suas posições à lógica de quests.
+- `legacy-ravena-rules.js` centraliza os quatro efeitos, duração, oferendas e preços locais.
+- `legacy-ravena-world.js` fornece monumento da Mãe, portal e templo em camadas separadas, além de planos 3D para as artes originais.
+- `legacy-ravena-ui.js` controla o altar, o mercado local, o painel de confirmação e o HUD da bênção.
+- `assets/legacy/*.webp.b64` contém derivados pequenos das duas artes originais em formato texto para a integração via GitHub.
 - `ui-world-map.js` desenha o Atlas a partir do manifesto; seleciona destinos para o movimento existente, sem conceder teleporte.
 - `ui-chronicles.js` cuida do diário sem misturar a renderização com os dados narrativos.
 - `navigation.js` implementa navegação A* por grade em módulo independente com fila de prioridade; futuramente será trocado por NavMesh por regiões.
@@ -85,7 +105,7 @@ A pescaria **não é um jogo separado**: é uma das atividades da Vila das Maré
 
 ## Limitações importantes
 
-- **Não há autenticação, servidor online, sincronização multiplayer, economia, guildas, PvP ou comércio real**. O arquivo de simulação de servidor é apenas uma base isolada. Habilidades ainda são simples testes de dano/energia, não árvores completas.
+- **Não há autenticação, servidor online, sincronização multiplayer, guildas, PvP ou economia entre jogadores**. Vendas do peixe funcionam somente no save local, com moedas demonstrativas. O arquivo de simulação de servidor é apenas uma base isolada. Habilidades ainda são simples testes de dano/energia, não árvores completas.
 - Pesca, mineração, forja e inventário **já têm loops demonstrativos locais**, mas ainda não há profissões profundas com progressão própria, missões completas, receitas avançadas, equipamentos utilizáveis ou economia entre jogadores.
 - Os personagens são representações 3D geométricas provisórias com animações articuladas simples; ainda não são modelos detalhados com animações esqueléticas, texturas PBR ou a personalização das referências visuais.
 - A navegação combina obstáculos circulares legados com **colisão retangular nos novos edifícios da capital e da vila**, além de bloqueio de água com exceção somente para o píer. Continua usando grade A*, sem NavMesh profissional. **O Atlas é um rascunho geográfico**; nem todas as rotas foram percorridas manualmente, e selecionar um destino pode falhar por obstáculos provisórios.
