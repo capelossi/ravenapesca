@@ -745,6 +745,13 @@
   }
   function updateZone(){
     if(!hero)return;
+    if(sanctuaryInside){
+      currentZone=temple.id;
+      $("zone").textContent=temple.name;
+      $("hud").querySelector(".minimap").classList.add("hidden");
+      return;
+    }
+    $("hud").querySelector(".minimap").classList.remove("hidden");
     const region=area(hero.position.x,hero.position.z);
     if(region.id!==currentZone){
       currentZone=region.id;
@@ -766,26 +773,117 @@
     if(!$("chronicle-panel").classList.contains("hidden"))
       globalThis.RavenaJournal?.render(quest,currentZone);
   }
+  function getNearbyInteraction(){
+    if(!hero)return null;
+    const list=sanctuaryInside?sanctuaryPoints:interactables;
+    const here=hero.position;
+    return list.filter(p=>Math.hypot(p.x-here.x,p.z-here.z)<(p.range||4.6))
+      .sort((a,b)=>Math.hypot(a.x-here.x,a.z-here.z)-
+                    Math.hypot(b.x-here.x,b.z-here.z))[0]||null;
+  }
+  function closePopups(){
+    legacyUI?.close();
+    $("dialogue").classList.add("hidden");dialogueOpen=false;
+    $("inventory-panel").classList.add("hidden");
+    $("settings-panel").classList.add("hidden");
+    globalThis.RavenaJournal?.close();
+    atlas.close();
+  }
+  function changeInterior(inside,{restore=false}={}){
+    if(!hero)return;
+    closePopups();
+    path=[];fishing=null;
+    marker.setEnabled(false);markerInner.setEnabled(false);
+    if(inside&&!sanctuaryInside&&!restore)
+      sanctuaryReturn={x:hero.position.x,z:hero.position.z};
+    sanctuaryInside=inside;
+    if(inside){
+      if(originalCameraRadius===null)originalCameraRadius=camera.radius;
+      hero.position.set(temple.spawn.x,0,temple.spawn.z);
+      camera.radius=Math.min(27,camera.upperRadiusLimit);
+      camera.target.set(temple.spawn.x,1.5,temple.spawn.z);
+      monuments.setInterior(true);
+      toast("🔮 Bem-vindo ao Templo do Crepúsculo.",4);
+    }else{
+      monuments.setInterior(false);
+      camera.radius=originalCameraRadius??(window.innerWidth<=750?36:31);
+      const returning=sanctuaryReturn;
+      // Never restore into a water obstacle or invalid coordinate.
+      const rx=Number.isFinite(returning.x)?returning.x:temple.entrance.x;
+      const rz=Number.isFinite(returning.z)?returning.z:temple.entrance.z;
+      const safe=blocked(rx,rz,.25)?
+        {x:temple.entrance.x,z:temple.entrance.z+4}:{x:rx,z:rz};
+      hero.position.set(safe.x,0,safe.z);
+      camera.target.set(safe.x,1.5,safe.z);
+      toast("🌙 Você retornou a Azarath.",4);
+    }
+    currentZone="";
+    updateZone();save();
+  }
   function talk(npc){
     if(!npc)return;
-    dialogueOpen=true;path=[];marker.setEnabled(false);markerInner.setEnabled(false);
-    $("npc-name").textContent=npc.name;$("npc-text").textContent=npc.story;
+    path=[];marker.setEnabled(false);markerInner.setEnabled(false);
+    if(npc.id==="mercadora-naila"){
+      closePopups();legacyUI?.openMarket();return;
+    }
+    dialogueOpen=true;
+    $("npc-name").textContent=npc.name;$("npc-text").textContent=npc.story||"";
     $("dialogue").classList.remove("hidden");
     if(npc.id)advanceStory("talk:"+npc.id);
   }
   function interact(){
     if(!hero)return;
+    if(legacyUI?.visible)return;
     if(dialogueOpen){closeDialogue();return;}
-    const nearby=interactables.filter(n=>Math.hypot(n.x-hero.position.x,n.z-hero.position.z)<4.6)
-      .sort((a,b)=>Math.hypot(a.x-hero.position.x,a.z-hero.position.z)-Math.hypot(b.x-hero.position.x,b.z-hero.position.z))[0];
-    if(nearby)talk(nearby);
-    else toast("Aproxime-se de um personagem para conversar.");
+    const nearby=getNearbyInteraction();
+    if(!nearby){
+      toast(sanctuaryInside?"Aproxime-se do altar ou do portal de saída.":
+        "Aproxime-se de um personagem ou portal para interagir.");
+      return;
+    }
+    if(nearby.kind==="portal")changeInterior(true);
+    else if(nearby.kind==="exit")changeInterior(false);
+    else if(nearby.kind==="altar"){
+      closePopups();legacyUI?.openAltar();
+    }else talk(nearby);
   }
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
+  // A lógica de oferenda e comércio é local e validada no jogo, não na UI.
+  legacyUI=globalThis.RavenaLegacyUI.create({
+    rules:ravenaRules,getState:()=>({bag,coins,blessing}),
+    onOffer:(fishKey,type)=>{
+      if(!sanctuaryInside||!hero||
+        Math.hypot(hero.position.x-temple.altar.x,hero.position.z-temple.altar.z)>4.6)
+        return {ok:false,reason:"Você precisa estar diante do altar."};
+      const result=ravenaRules.makeOffering(bag,fishKey,type,Date.now());
+      if(!result.ok)return result;
+      addItem(result.consumes.key,-result.consumes.count);
+      blessing=result.blessing;
+      save();legacyUI?.refresh();
+      toast("🔮 A Ravena aceitou a oferenda. "+
+        ravenaRules.BLESSINGS[type].name+" ativada por 10 minutos!",5);
+      return {ok:true};
+    },
+    onSell:(fishKey)=>{
+      const merchant=world.npcs.find(n=>n.id==="mercadora-naila");
+      if(!hero||sanctuaryInside||!merchant||
+        Math.hypot(hero.position.x-merchant.x,hero.position.z-merchant.z)>5)
+        return {ok:false,reason:"Você precisa estar junto à Mercadora Naila."};
+      if(!ravenaRules.validFish(fishKey)||(bag[fishKey]||0)<1)
+        return {ok:false,reason:"Não há esse peixe na mochila."};
+      const price=ravenaRules.saleValue(ravenaRules.fishPrice(fishKey),blessing);
+      addItem(fishKey,-1);coins+=price;
+      save();toast("🪙 Venda concluída: +"+price+" moedas.",3);
+      return {ok:true,price};
+    }
+  });
+  legacyUI.refresh();
   // Em tela móvel a interação é um botão real; o teclado E continua opcional.
   $("interaction").addEventListener("click",interact);
   const showAtlas=()=>{
+    if(sanctuaryInside){toast("O templo é um interior. Use o portal de saída.");return;}
+    legacyUI?.close();
     toggleBag(false);
     $("settings-panel").classList.add("hidden");
     globalThis.RavenaJournal?.close();
