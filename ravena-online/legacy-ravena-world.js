@@ -132,7 +132,8 @@
     const worldRing=ring("portal Ravena exterior",entry.x,1.8,entry.z,
       2.82,.22,violet,WORLD_MASK,true);
     const portalCore=orb("portal energia exterior",entry.x,1.86,entry.z,.71,violet,WORLD_MASK);
-    sign("PORTAL DO CREPÚSCULO",entry.x,entry.z-3.8,"#d8a2f0");
+    const portalSign=sign("PORTAL DO CREPÚSCULO",entry.x,entry.z-3.8,"#d8a2f0");
+    portalSign.layerMask=WORLD_MASK;
     // Forest portal is safe to approach: no solid collision across the opening.
     const floor=B.MeshBuilder.CreateGround("chao Templo do Crepusculo",{
       width:28,height:36,subdivisions:2
