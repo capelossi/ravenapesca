@@ -306,7 +306,7 @@ assert.equal(bagBless.lambari,2,"Pure rule must never mutate inventory");
 assert.equal(ravena.makeOffering({lambari:0},"lambari","sorte",1000).ok,false);
 assert.equal(ravena.active(offer.blessing,3000),"sorte");
 assert.equal(ravena.active(offer.blessing,601000),null);
-assert.equal(ravena.fishingRoll(.8,offer.blessing,3000),.835);
+assert.ok(Math.abs(ravena.fishingRoll(.8,offer.blessing,3000)-.835)<1e-10);
 assert.equal(ravena.fishingXp(65,{type:"sabedoria",expiresAt:900000},3000),78);
 assert.equal(ravena.saleValue(100,{type:"fortuna",expiresAt:900000},3000),115);
 assert.equal(ravena.earnBait(10,{type:"aguas",expiresAt:900000},3000),1);
