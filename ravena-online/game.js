@@ -988,10 +988,31 @@
       for(const key of Object.keys(bag))bag[key]=Math.max(0,Math.floor(Number(saved.bag?.[key])||0));
       totalFish=Math.max(0,Math.floor(Number(saved.totalFish)||0));
       totalOre=Math.max(0,Math.floor(Number(saved.totalOre)||0));
-      if(Number.isFinite(saved.x)&&Number.isFinite(saved.z)&&!blocked(saved.x,saved.z))hero.position.set(saved.x,0,saved.z);}
-    if(!sameSaved){level=1;xp=0;quest=0;bag=emptyBag();totalFish=0;totalOre=0;}
+      coins=Math.max(0,Math.floor(Number(saved.coins)||0));
+      const oldBuff=saved.blessing;
+      blessing=ravenaRules.validBlessing(oldBuff?.type) &&
+        Number.isFinite(oldBuff?.expiresAt)?
+        {type:oldBuff.type,expiresAt:oldBuff.expiresAt}:{type:null,expiresAt:0};
+      if(Number.isFinite(saved.sanctuaryReturn?.x)&&Number.isFinite(saved.sanctuaryReturn?.z))
+        sanctuaryReturn={x:saved.sanctuaryReturn.x,z:saved.sanctuaryReturn.z};
+      if(Number.isFinite(saved.x)&&Number.isFinite(saved.z)&&!blocked(saved.x,saved.z))
+        hero.position.set(saved.x,0,saved.z);
+      if(saved.sanctuaryInside===true){
+        sanctuaryInside=true;
+        hero.position.set(temple.spawn.x,0,temple.spawn.z);
+        monuments.setInterior(true);
+        originalCameraRadius=window.innerWidth<=750?36:31;
+        camera.radius=25;
+        camera.target.set(hero.position.x,1.5,hero.position.z);
+      }
+    }
+    if(!sameSaved){
+      level=1;xp=0;quest=0;bag=emptyBag();totalFish=0;totalOre=0;
+      sanctuaryInside=false;monuments.setInterior(false);
+      coins=0;blessing={type:null,expiresAt:0};
+    }
     hp=100+Math.max(0,level-1)*15;mp=100+Math.max(0,level-1)*10;
-    renderBag();
+    renderBag();legacyUI?.refresh();
     $("creation").classList.add("hidden");$("hud").classList.remove("hidden");
     updateStats();updateQuest();currentZone="";updateZone();save();
     toast("Bem-vindo a Azarath, "+name+"! Clique no chão para caminhar.",5);
