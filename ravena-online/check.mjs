@@ -312,6 +312,33 @@ assert.equal(ravena.saleValue(100,{type:"fortuna",expiresAt:900000},3000),115);
 assert.equal(ravena.earnBait(10,{type:"aguas",expiresAt:900000},3000),1);
 assert.equal(ravena.earnBait(9,{type:"aguas",expiresAt:900000},3000),0);
 assert.equal(ravena.earnBait(10,{type:"aguas",expiresAt:1},3000),0);
+for(const [file,expectedBytes] of [
+  ["mae-das-aguas-v6436.webp.b64",3474],
+  ["ravena-estatua-v6431.webp.b64",2526]
+]){
+  const source=readFileSync(join(dir,"assets","legacy",file),"utf8").trim();
+  const decoded=Buffer.from(source,"base64");
+  assert.equal(decoded.length,expectedBytes,"Compressed approved artwork missing/corrupted: "+file);
+  assert.equal(decoded.subarray(0,4).toString("ascii"),"RIFF","Original art must be WebP");
+  assert.equal(decoded.subarray(8,12).toString("ascii"),"WEBP","Original art must be WebP");
+}
+const temple=scope.RavenaMonuments.TEMPLE;
+assert.notEqual(scope.RavenaMonuments.WORLD_MASK,scope.RavenaMonuments.TEMPLE_MASK,
+  "Temple must render in a separate camera layer");
+const templeBlocked=(x,z)=>{
+  const b=temple.bounds;
+  return x<=b.minX+.25||x>=b.maxX-.25||
+    z<=b.minZ+.25||z>=b.maxZ-.25||Math.hypot(x,z+149)<3.2;
+};
+for(const p of [temple.spawn,temple.altar,temple.exit])
+  assert.ok(!templeBlocked(p.x,p.z),"Temple interaction must be reachable");
+const routeTemple=nav.findPath(
+  {x:temple.spawn.x,z:temple.spawn.z-temple.center.z},
+  {x:temple.altar.x,z:temple.altar.z-temple.center.z},
+  (x,z)=>templeBlocked(x,z+temple.center.z),
+  {cell:1,maxCell:24,maxIterations:4500}
+);
+assert.ok(routeTemple.length>0,"Player must reach Ravena altar from temple entrance");
 assert.ok(atlasSource.includes('place.phase==="planned"'),"Atlas must visually mark planned POIs");
 assert.ok(html.indexOf('src="world-layout.js"')<html.indexOf('src="ui-world-map.js"'),
   "Layout module must load before Atlas UI");
