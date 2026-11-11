@@ -93,9 +93,13 @@
   const oreNodes=[];
   const waterRipples=[];
   let hero=null, config=null, path=[], waypoint=null, nextInteraction=null, level=1,xp=0,hp=100,mp=100;
-  const emptyBag=()=>({ore:0,dagger:0,fur:0,essence:0,lambari:0,tilapia:0,carpa:0,lendario:0});
+  const emptyBag=()=>({ore:0,dagger:0,fur:0,essence:0,lambari:0,tilapia:0,carpa:0,lendario:0,bait:0});
   let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
   let totalFish=0,totalOre=0,targetUntil=0,lastEnemyHit=0;
+  const ravenaRules=globalThis.RavenaLegacyRules;
+  let coins=0,blessing={type:null,expiresAt:0};
+  let sanctuaryInside=false,sanctuaryReturn={x:-35,z:-23};
+  let originalCameraRadius=null,legacyUI=null,lastBlessingTick=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
   let lastSignUpdate=0;
   // Leitura diagnóstica opt-in apenas na pré-alfa, para validar rotas de ponta a ponta.
@@ -106,7 +110,9 @@
         snapshot:()=>({
           x:hero?.position.x??null,z:hero?.position.z??null,
           zone:currentZone,routePoints:path.length,
-          blockedAtHero:hero?blocked(hero.position.x,hero.position.z,.12):null
+          blockedAtHero:hero?blocked(hero.position.x,hero.position.z,.12):null,
+          sanctuaryInside,blessingType:ravenaRules.active(blessing),
+          bag:{...bag},coins
         })
       }),
       writable:false,configurable:false
@@ -128,6 +134,7 @@
     obstacles.push({kind:"box",x,z,halfW:width/2,halfD:depth/2});
   }
   function blocked(x,z,pad=.65) {
+    if(sanctuaryInside)return monuments.blockedInside(x,z,pad);
     if(!bounded(x,z))return true;
     // A cidade portuária protege o lago e libera apenas o corredor físico do píer.
     if(village.isLakeBlocked(x,z,pad))return true;
@@ -511,8 +518,31 @@
   const markerInner=disc("destination sparkle",0,0,.19,m.lavender,.14);
   markerInner.setEnabled(false);
 
-  // Serviço de navegação intercambiável: no futuro será substituído por NavMesh.
+  // Monumentos aprovados no PescaVena: Mãe das Águas, portal e templo separado.
+  // O módulo isola o interior em outra camada; a cena principal continua intacta.
+  const monuments=globalThis.RavenaMonuments.create({B,scene,camera,m,sign});
+  const temple=monuments.temple;
+  interactables.push({
+    id:"portal-do-crepusculo",kind:"portal",name:"Portal do Crepúsculo",
+    x:temple.entrance.x,z:temple.entrance.z,range:3.7
+  });
+  const sanctuaryPoints=[
+    {id:"altar-ravena",kind:"altar",name:"Altar da Ravena",
+      x:temple.altar.x,z:temple.altar.z,range:4.1},
+    {id:"saida-crepusculo",kind:"exit",name:"Retornar a Azarath",
+      x:temple.exit.x,z:temple.exit.z,range:3.2}
+  ];
+  // Serviço de navegação compartilhado, com coordenadas locais dentro do templo.
   function route(start,end){
+    if(sanctuaryInside){
+      const center=temple.center;
+      return globalThis.RavenaNavigation.findPath(
+        {x:start.x-center.x,z:start.z-center.z},
+        {x:end.x-center.x,z:end.z-center.z},
+        (x,z,pad)=>monuments.blockedInside(x+center.x,z+center.z,pad),
+        {cell:1,maxCell:24,maxIterations:4500}
+      ).map(p=>new B.Vector3(p.x+center.x,0,p.z+center.z));
+    }
     return globalThis.RavenaNavigation.findPath(
       {x:start.x,z:start.z},{x:end.x,z:end.z},blocked
     ).map(p=>new B.Vector3(p.x,0,p.z));
@@ -588,13 +618,18 @@
   }
   function save(){
     if(!hero||!config)return;
-    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({config,x:hero.position.x,z:hero.position.z,xp,level,quest,storySchema:world.schemaVersion,bag,totalFish,totalOre}));}catch{}
+    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({
+      config,x:hero.position.x,z:hero.position.z,xp,level,quest,
+      storySchema:world.schemaVersion,bag,totalFish,totalOre,
+      coins,blessing,sanctuaryInside,sanctuaryReturn
+    }));}catch{}
   }
   const bagCatalog=[
     ["ore","⛏","Minério bruto"],["dagger","⚔","Adaga forjada"],
     ["fur","🐾","Couro de lobo"],["essence","✧","Essência do Véu"],
     ["lambari","🐟","Lambari"],["tilapia","🐟","Tilápia"],
-    ["carpa","🐠","Carpa"],["lendario","✦","Peixe lendário"]
+    ["carpa","🐠","Carpa"],["lendario","✦","Peixe lendário"],
+    ["bait","🪱","Isca especial"]
   ];
   function renderBag(){
     const container=$("inventory-items");
