@@ -23,10 +23,14 @@ const villageSceneSource=readFileSync(join(dir,"village-scene.js"),"utf8");
 const graphics=readFileSync(join(dir,"graphics.js"),"utf8");
 const combatSource=readFileSync(join(dir,"combat-rules.js"),"utf8");
 const enemiesSource=readFileSync(join(dir,"enemies.js"),"utf8");
+const legacyRules=readFileSync(join(dir,"legacy-ravena-rules.js"),"utf8");
+const legacyWorld=readFileSync(join(dir,"legacy-ravena-world.js"),"utf8");
+const legacyUI=readFileSync(join(dir,"legacy-ravena-ui.js"),"utf8");
 
 for(const source of ["game.js","world-data.js","ui-chronicles.js","navigation.js",
   "graphics.js","combat-rules.js","enemies.js","world-layout.js","ui-world-map.js",
-  "capital-layout.js","capital-scene.js","village-layout.js","village-scene.js"]){
+  "capital-layout.js","capital-scene.js","village-layout.js","village-scene.js",
+  "legacy-ravena-rules.js","legacy-ravena-world.js","legacy-ravena-ui.js"]){
   execFileSync(process.execPath,["--check",join(dir,source)],{stdio:"inherit"});
 }
 // Unit tests for server-authoritative movement and proximity snapshots.
@@ -62,6 +66,12 @@ const combat=scope.RavenaCombat;
 assert.ok(combat,"Combat rules module missing");
 assert.ok(scope.RavenaEnemies?.create,"Enemy runtime module missing");
 assert.ok(scope.RavenaVisuals?.create,"Graphics module missing");
+runInNewContext(legacyRules,{globalThis:scope});
+runInNewContext(legacyWorld,{globalThis:scope});
+runInNewContext(legacyUI,{globalThis:scope});
+const ravena=scope.RavenaLegacyRules;
+assert.ok(ravena && scope.RavenaMonuments?.create && scope.RavenaLegacyUI?.create,
+  "Ravena temple, blessings and UI must be modular");
 assert.deepEqual(Object.keys(scope.RavenaVisuals.QUALITY),["leve","equilibrado","ultra"]);
 
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
@@ -79,6 +89,11 @@ for(const id of ["inventory-panel","inventory-items","button-inventory","invento
  "button-map","world-map-panel","world-map-close","atlas-svg-host",
  "atlas-navigate","atlas-place-name","atlas-place-description","atlas-place-list",
  "atlas-place-status","atlas-region-label",
+ "ravena-altar-panel","ravena-altar-close","ravena-fish-select",
+ "ravena-offer","ravena-confirmation","ravena-confirmation-text",
+ "ravena-confirm-yes","ravena-confirm-no","ravena-current",
+ "ravena-fish-market-panel","ravena-market-close","ravena-market-items",
+ "ravena-coin-balance","ravena-blessing-hud",
  "world","creation","hud"])
   assert.ok(ids.has(id),"Essential UI element missing: "+id);
 
@@ -104,7 +119,8 @@ assert.ok(html.includes('<script src="ui-chronicles.js"></script>'),"Journal mod
 assert.ok(html.includes('<script src="navigation.js"></script>'),"Navigation module missing");
 for(const src of ["graphics.js","combat-rules.js","enemies.js","world-layout.js",
  "ui-world-map.js","capital-layout.js","capital-scene.js",
-  "village-layout.js","village-scene.js"]){
+  "village-layout.js","village-scene.js",
+  "legacy-ravena-rules.js","legacy-ravena-world.js","legacy-ravena-ui.js"]){
   assert.ok(html.includes('<script src="'+src+'"></script>'),"Missing module "+src);
   assert.ok(html.indexOf('src="'+src+'"')<html.indexOf('src="game.js"'),
     "Modules must load before game: "+src);
@@ -134,6 +150,15 @@ assert.ok(game.includes("for(const npc of world.npcs)"),"NPCs must be data-drive
 assert.ok(game.includes("if(npc.id)advanceStory"),"Narrative must depend on NPC ids");
 assert.ok(!game.includes("n.name===npc.name"),"Narrative must not depend on translated display names");
 assert.ok(game.includes("RavenaVillageScene.create"),"Village buildings must use data-driven scenery");
+assert.ok(game.includes("RavenaMonuments.create"),"Approved monument scene missing");
+assert.ok(game.includes("RavenaLegacyUI.create"),"Altar and fish merchant UI missing");
+assert.ok(game.includes("monuments.blockedInside"),"Temple must be enclosed by collision");
+assert.ok(game.includes("monuments.setInterior"),"Separate temple layer must be activated");
+assert.ok(game.includes("ravenaRules.makeOffering"),"Offerings must be checked before consuming fish");
+assert.ok(game.includes("ravenaRules.fishingXp"),"Wisdom must affect fishing XP");
+assert.ok(game.includes("ravenaRules.fishingRoll"),"Luck must affect fishing chance");
+assert.ok(game.includes("ravenaRules.saleValue"),"Fortuna must affect market sale coins");
+assert.ok(game.includes("ravenaRules.earnBait"),"Favor das Águas must award bait");
 assert.ok(game.includes('advanceStory("enter:"+region.id)'),"Zone events must drive story");
 assert.ok(game.includes('advanceStory("fish:any")'),"Fishing must have narrative event");
 assert.ok(game.includes('advanceStory("mine:any")'),"Mining must have narrative event");
@@ -145,7 +170,7 @@ assert.ok(unique(layout.regions.map(x=>x.id)),"Atlas region IDs must be unique")
 assert.ok(unique(layout.places.map(x=>x.id)),"Atlas POI IDs must be unique");
 assert.ok(unique(layout.paths.map(x=>x.id)),"Atlas route IDs must be unique");
 assert.equal(layout.regions.length,4,"Map-first foundation has four regions");
-assert.equal(layout.places.length,22,"Village refinement must have 22 POIs");
+assert.equal(layout.places.length,24,"Legacy shrine and temple portal add two POIs");
 assert.equal(layout.startId,world.start.region,"Atlas initial region must match the world");
 assert.ok(capital.avenues.length>=5,"Capital avenues missing");
 assert.ok(capital.buildings.length>=3,"Capital needs guild, inn and council landmarks");
@@ -260,6 +285,33 @@ assert.equal(simulate([...prefix,"talk:faroleira-iara","enter:montanhas-da-forja
   world.story.stages.length,"Alternative route should finish without fishing/crafting");
 assert.ok(chronicles.includes("story.stages"),"Journal must read chapter data");
 assert.ok(atlasSource.includes("onNavigate(selected)"),"Atlas must use on-foot route callback");
+const shrine=scope.RavenaMonuments.TEMPLE;
+assert.equal(shrine.id,"templo-do-crepusculo");
+assert.ok(layout.places.some(p=>p.id==="portal-do-crepusculo" && p.phase==="greybox"),
+  "Forest portal must be an active Atlas destination");
+assert.ok(layout.places.some(p=>p.id==="mirante-mae-aguas" && p.phase==="greybox"),
+  "Mother of Waters monument must be visible from a lake lookout");
+assert.ok(layout.places.some(p=>p.id==="santuario-aguas" && p.phase==="planned"),
+  "Future separate Water Mother shrine must not be falsely marked built");
+const approved=["sorte","sabedoria","fortuna","aguas"];
+assert.equal(Object.keys(ravena.BLESSINGS).join(","),approved.join(","));
+assert.equal(ravena.DURATION_MS,600000);
+const bagBless={lambari:2,tilapia:1};
+const offer=ravena.makeOffering(bagBless,"lambari","sorte",1000);
+assert.ok(offer.ok);
+assert.equal(offer.blessing.type,"sorte");
+assert.equal(offer.blessing.expiresAt,601000);
+assert.equal(offer.consumes.count,1);
+assert.equal(bagBless.lambari,2,"Pure rule must never mutate inventory");
+assert.equal(ravena.makeOffering({lambari:0},"lambari","sorte",1000).ok,false);
+assert.equal(ravena.active(offer.blessing,3000),"sorte");
+assert.equal(ravena.active(offer.blessing,601000),null);
+assert.equal(ravena.fishingRoll(.8,offer.blessing,3000),.835);
+assert.equal(ravena.fishingXp(65,{type:"sabedoria",expiresAt:900000},3000),78);
+assert.equal(ravena.saleValue(100,{type:"fortuna",expiresAt:900000},3000),115);
+assert.equal(ravena.earnBait(10,{type:"aguas",expiresAt:900000},3000),1);
+assert.equal(ravena.earnBait(9,{type:"aguas",expiresAt:900000},3000),0);
+assert.equal(ravena.earnBait(10,{type:"aguas",expiresAt:1},3000),0);
 assert.ok(atlasSource.includes('place.phase==="planned"'),"Atlas must visually mark planned POIs");
 assert.ok(html.indexOf('src="world-layout.js"')<html.indexOf('src="ui-world-map.js"'),
   "Layout module must load before Atlas UI");
