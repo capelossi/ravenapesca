@@ -109,11 +109,17 @@ try {
     "Blessing must remain active after leaving the temple");
   // Test the other critical effect (Fortuna) in the NPC market with a
   // checkpoint loaded near Mercadora Naila. Other blessings are unit-tested.
-  await page.evaluate(()=>{
-    const save=JSON.parse(localStorage.getItem("ravena-online-alpha1"));
+  // The game saves on beforeunload. Seed the checkpoint *during the new page
+  // initialization*, so beforeunload cannot overwrite it with the old position.
+  await page.addInitScript(()=>{
+    if(!location.pathname.includes("ravena-online")||
+       sessionStorage.getItem("ravena-market-fixture-applied")==="1")return;
+    const save=JSON.parse(localStorage.getItem("ravena-online-alpha1")||"null");
+    if(!save)return;
     save.x=30;save.z=-30;save.sanctuaryInside=false;
     save.blessing={type:"fortuna",expiresAt:Date.now()+600000};
     localStorage.setItem("ravena-online-alpha1",JSON.stringify(save));
+    sessionStorage.setItem("ravena-market-fixture-applied","1");
   });
   await page.reload({waitUntil:"domcontentloaded"});
   await page.locator("#start").click();
