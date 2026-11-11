@@ -1,0 +1,103 @@
+# ARQUITETURA DE EXPANSÃO — RAVENA ONLINE
+**Escopo atual:** protótipo estático, 3D e solo. Não há um servidor MMORPG funcional. Este documento define contratos para crescer com segurança.
+
+## Estado inicial
+- `index.html` — interface, criação de personagem e telas.
+- `style.css` — interface responsiva.
+- `world-data.js` — registro de cidades, regiões, NPCs, posições, capítulo e expansões; **nenhum código de renderização**.
+- `capital-layout.js` — planta editável da Capital: edifícios nomeados, entradas, avenidas, feiras e iluminação.
+- `capital-scene.js` — construtor de geometria 3D apenas da Capital. Não contém lógica de quests ou profissão.
+- `village-layout.js` — planta versionada da Vila das Marés: prefeitura, pousada, armazém, oficina naval, bairro residencial, farol, praias e píer. Contém funções geométricas puras `inPier(x,z,pad)` e `isLakeBlocked(x,z,pad)`.
+- `village-scene.js` — construtor 3D de edifícios, praças, mercados, barcos e água. Substituível por assets GLB sem mudar as regras de navegação.
+- **Contrato da margem:** nunca criar um grande obstáculo circular sobre o píer. A água bloqueia movimento exceto no corredor da passarela, delimitado no manifesto. O motor de navegação, a pesca e os testes devem usar a mesma fonte de verdade. O lago é parte da cidade, não uma zona online isolada.
+- **Contrato entre mapa e cenário:** cada edifício com ID estável expõe um `approach` externo que corresponde a um POI no `world-layout.js`. Os edifícios da capital usam colisões retangulares; portais e interiores só serão criados após validar os acessos.
+- `navigation.js` — serviço de A* em grade com fila de prioridade, isolado do Babylon.js, candidato a substituição por NavMesh.
+- `game.js` — motor Babylon.js, mundo procedural atual, consumo do serviço de navegação e ações locais.
+- `ui-chronicles.js` — diário narrativo desacoplado do motor gráfico.
+- `graphics.js` — texturas temporárias, três perfis de qualidade e ciclo de dia/noite no cliente.
+- `combat-rules.js` — regras puras de tipos de inimigos, dano e saque.
+- `enemies.js` — modelos de criaturas, detecção, perseguição e combate solo; deve ser substituído pela simulação de zona quando houver rede.
+- `server/zone-engine.mjs` — núcleo **não conectado** de movimento autoritativo e filtro por proximidade, sem login, banco, WebSocket ou anti-colisão completo.
+- `server/zone-engine.test.mjs` — testes determinísticos para controle de velocidade, capacidade, sessão e raio de visibilidade.
+- `browser-smoke.mjs` — teste headless desktop/mobile, se houver Chromium e Playwright instalados.
+- `check.mjs` — teste de sintaxe e contratos básicos, sem substituir testes em navegador.
+- `docs/BIBLIA-DO-MUNDO.md` — lore e direção criativa.
+
+## Contratos do conteúdo
+**IDs:** nomes exibidos podem mudar; `id` não deve mudar sem migração do save. Regiões usam `id`, `name`, `kind`, `bounds` quando aplicável, `neighbors`, `level` e `description`. A capital é o *fallback* quando uma coordenada não pertence a outra região.
+
+**Cidades:** toda cidade deve ter `anchor`, `districts`, `houses`, `market` e uma conexão com o grafo de navegação. Dados de renderização específicos (arte, meshes, interiores) devem permanecer fora dos registros narrativos no longo prazo.
+
+**NPCs:** `id`, `name`, `x`, `z`, `kind`, `story`. Futuramente: `dialogueTreeId`, `shopId`, `scheduleId`, `factionId`, `spawnId`.
+
+**Missões:** `id`, `title`, `description`, `trigger` (string **ou lista de gatilhos alternativos**), `xp`, `notice`. O protótipo usa índice numérico + versão de schema para saves antigos; a versão em servidor deverá usar `questId` e `completedObjectiveIds`, com migrações para múltiplos ramos e coop.
+
+**Eventos no protótipo:** `talk:<npc-id>`, `enter:<region-id>`, `fish:any`, `mine:any`, `craft:dagger`. Cada etapa pode aceitar eventos alternativos. Nunca usar texto visível como ID de negócio.
+
+## Mapa em escala
+Em vez de um único mundo com todos os objetos carregados ao mesmo tempo, evoluir para:
+1. Zonas configuradas por manifesto com limites e pontos de conexão.
+2. Terreno e construções por *chunks* com níveis de detalhe (LOD).
+3. Navegação por NavMesh por chunk, conectando bordas e portais.
+4. Interiores sob demanda e regiões isoladas onde houver razão técnica, preservando a percepção de mundo conectado.
+5. Prefetch de chunks adjacentes e streaming de assets.
+6. Descarte controlado de texturas, malhas e partículas ao sair de regiões.
+7. Profiler e metas de qualidade por dispositivo, sem prometer FPS universal.
+
+Na versão inicial de teste, Capital e Vila das Marés convivem em uma única cena. Isto é intencional para validar jogabilidade e transição a pé; não é escalável para todo o continente.
+
+## Multiplayer autoritativo (futuro)
+**Cliente:** renderização, câmera, inputs e previsão/interpolação limitada. Nunca assume ser dono de HP, posição validada, saldo, loot ou estoque.
+
+**Gateway de identidade:** login, sessões, limites, banimentos, verificação e controle de abuso; JWT curto ou sessão segura, renovação controlada.
+
+**Servidor de zona (Colyseus/Node ou equivalente):** movimento validado, combate e efeitos de mundo, NPCs, eventos, presença de jogadores e interesse espacial. Sincronizar apenas entidades próximas, não a região inteira para todos.
+
+Já existe um esqueleto independente em `server/zone-engine.mjs` que aceita **destinos solicitados, nunca posições verificadas** e desloca jogadores por tick sob limite de velocidade. Ele foi deliberadamente mantido sem transporte de rede: antes de expor WSS será necessário autenticação, colisão/NavMesh de servidor, persistência e testes de carga. O teste atual é lógico e não comprova escala real.
+
+**Serviço de progressão:** personagens, inventário, missões, XP, habilidades, profissões e achievements; persistência e regras de negócio.
+
+**Serviço econômico:** mercado, trades e crafting com transações PostgreSQL, bloqueio de itens e logs; nunca confiar em moeda ou item enviado do navegador. Idempotência e auditoria.
+
+**Chat/social:** canais por zona, grupo e guilda, moderação, proteção contra spam e abuso; políticas compatíveis com diferentes idades e jurisdições.
+
+**Banco:** contas, personagens, posições, xp, progressão narrativa, itens instanciados, catálogo de receitas, mercado, guildas, auditoria e versões de schema. Backups e migrações.
+
+## Modelo orientativo de domínio
+```text
+Account(id, status)
+Character(id, accountId, name, bodyPreset, classId, level, xp, zoneId, position)
+InventoryStack(id, characterId, itemDefId, count)
+ItemInstance(id, ownerId, itemDefId, durability, modifiers)
+QuestProgress(characterId, questId, completedObjectives, state, version)
+ProfessionProgress(characterId, professionId, level, xp)
+MarketListing(id, sellerId, itemInstanceId, price, status, version)
+WorldRegion(id, connections, spawnPoints, difficultyBand)
+Guild(id, leaderId, treasury, members)
+```
+
+## Backlog por etapas e critérios de aceite
+**Marco A — Mundo e enredo (ATUAL):** uma capital e uma vila vizinha, estrada contínua, NPCs com IDs, missão com alternativas e diário de crônicas. Navegação A* modular; precisa validação manual em desktop e mobile.
+
+**Marco B — Vertical slice RPG:** uma cidade aprofundada; avatar GLB animado por classe; duas habilidades reais por classe; quatro tipos de inimigos com IA; inventário/equipamento jogável; profissões básicas; quests com escolhas; checkpoints. Critério: loop de 30 minutos sem comandos falsos.
+
+**Marco C — Online fechado:** dois jogadores conectados na mesma zona, movimento interpolado, autenticação, chat e salvamento servidor. Critério: reconexão sem duplicação de itens ou perda de progressão.
+
+**Marco D — Economia:** profissões profundas, bancas, comércio atômico, guildas, leilão. Critério: testes de concorrência e anti-duplicação.
+
+**Marco E — Expansão:** mais mapas com streaming, chefes mundiais, grupos, ciclos, eventos e observabilidade. Critério: orçamento de CPU/RAM/rede medido sob carga de usuários simulados.
+
+## Critérios de qualidade
+- Sem travamentos críticos, sem progressão duplicada, sem perda silenciosa de save.
+- Input mouse, toque, zoom e botões mobile funcionais.
+- Sem vazamento de recursos de GPU ao navegar entre zonas (quando houver streaming).
+- Interface de texto legível em tela pequena e acessível por teclado.
+- Testes unitários para regras de negócio e testes e2e de navegação, craft, missões e saves.
+- Logs de servidor sem dados privados de jogadores.
+- Sem lançar marketplace real antes de testes de segurança.
+
+## Separação do PescaVena
+O PescaVena antigo fica intacto. A pescaria do Ravena Online é uma profissão dentro da Vila das Marés, não um iframe ou jogo à parte. Sistemas e arte do PescaVena podem servir como inspiração, mas precisam migrar para um catálogo de itens e persistência comuns ao MMORPG.
+
+## Limites atuais
+Não existe ainda deploy verificado, personagens 3D finais, infraestrutura MMO ou load-test. A branch é de desenvolvimento; publicar não deve apagar o site anterior.
