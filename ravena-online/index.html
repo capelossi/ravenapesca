@@ -15,6 +15,7 @@
       <div class="brand"><span class="brand-rune">✦</span> RAVENA <span class="brand-weak">ONLINE</span></div>
       <div class="server"><span class="green-dot"></span> PRÉ-ALFA · MODO SOLO</div>
       <div class="zone" id="zone">Capital de Azarath</div>
+      <div id="ravena-blessing-hud" class="ravena-buff-hud hidden" aria-label="Bênção ativa"></div>
       <div class="status-graphics" id="graphics-fps" aria-label="Desempenho">FPS —</div>
     </header>
     <aside class="quests glass">
@@ -60,6 +61,41 @@
       <button class="skill" data-action="fish" title="Pescar perto do píer (5)"><span>🎣</span><small>5</small></button>
     </nav>
     <div class="actions glass"><button id="button-map" title="Mapa do mundo (M)" aria-label="Abrir mapa do mundo">◇ <span>Mapa</span></button><button id="button-settings" title="Gráficos e qualidade" aria-label="Configurações gráficas">⚙ <span>Gráficos</span></button><button id="button-journal" title="Diário de aventuras">▤ <span>Crônicas</span></button><button id="button-inventory" title="Mochila">▣ <span>Mochila</span></button><button id="button-profile" title="Ficha do personagem">☷ <span>Personagem</span></button><button id="button-help" title="Controles">? <span>Controles</span></button></div>
+    <section id="ravena-altar-panel" class="ravena-panel glass hidden" role="dialog" aria-label="Altar da Ravena" aria-modal="false">
+      <header class="ravena-panel-header">
+        <div><small>TEMPLO DO CREPÚSCULO</small><h2>🔮 Altar da Ravena</h2></div>
+        <button type="button" id="ravena-altar-close" aria-label="Fechar altar">×</button>
+      </header>
+      <p class="ravena-intro">Ofereça um peixe da sua mochila. A Ravena concede uma bênção por 10 minutos. Apenas uma pode estar ativa: a próxima substitui a anterior.</p>
+      <div class="ravena-current" id="ravena-current">Nenhuma bênção ativa.</div>
+      <div class="ravena-buffs" role="group" aria-label="Escolha uma bênção">
+        <button type="button" data-ravena-blessing="sorte" class="ravena-buff-option selected"><span>🐟</span><b>Sorte das Profundezas</b><small>+3,5 pp de chance na pesca</small></button>
+        <button type="button" data-ravena-blessing="sabedoria" class="ravena-buff-option"><span>✨</span><b>Sabedoria Sombria</b><small>+20% de XP por captura</small></button>
+        <button type="button" data-ravena-blessing="fortuna" class="ravena-buff-option"><span>🪙</span><b>Fortuna da Ravena</b><small>+15% de moedas nas vendas</small></button>
+        <button type="button" data-ravena-blessing="aguas" class="ravena-buff-option"><span>🌊</span><b>Favor das Águas</b><small>+1 isca a cada 10 capturas</small></button>
+      </div>
+      <label for="ravena-fish-select">Peixe para a oferenda</label>
+      <select id="ravena-fish-select" aria-label="Peixe para oferecer à Ravena"></select>
+      <p class="ravena-warning">A oferenda consome permanentemente 1 peixe. XP anterior não é removido.</p>
+      <div class="ravena-confirmation hidden" id="ravena-confirmation" role="status">
+        <p id="ravena-confirmation-text"></p>
+        <div class="ravena-dialog-actions">
+          <button type="button" id="ravena-confirm-no">Cancelar</button>
+          <button type="button" id="ravena-confirm-yes">Confirmar oferenda</button>
+        </div>
+      </div>
+      <button type="button" id="ravena-offer" class="ravena-primary">Oferecer peixe à Ravena</button>
+    </section>
+
+    <section id="ravena-fish-market-panel" class="ravena-panel glass hidden" role="dialog" aria-label="Mercado de peixes da Vila das Marés" aria-modal="false">
+      <header class="ravena-panel-header">
+        <div><small>VILA DAS MARÉS</small><h2>⚓ Mercado do Sal</h2></div>
+        <button type="button" id="ravena-market-close" aria-label="Fechar mercado">×</button>
+      </header>
+      <p class="ravena-intro">Venda seus peixes ao mercador local. Com a bênção Fortuna da Ravena, os preços aumentam 15%. Comércio demonstrativo, apenas neste navegador.</p>
+      <p id="ravena-coin-balance" class="ravena-current">🪙 0 moedas</p>
+      <div id="ravena-market-items" class="ravena-market-items"></div>
+    </section>
     <section id="world-map-panel" class="world-map-panel glass hidden" role="dialog" aria-label="Mapa do Reino de Azarath" aria-modal="false">
       <div class="world-map-header">
         <div><div class="map-kicker">ATLAS · FASE 1</div><h2>Reino de Azarath</h2>
@@ -139,6 +175,9 @@
   </div>
   <div id="dialogue" class="dialogue glass hidden"><strong id="npc-name"></strong><p id="npc-text"></p><button id="dialogue-close">Continuar ↗</button></div>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="legacy-ravena-rules.js"></script>
+  <script src="legacy-ravena-world.js"></script>
+  <script src="legacy-ravena-ui.js"></script>
   <script src="world-data.js"></script>
   <script src="world-layout.js"></script>
   <script src="capital-layout.js"></script>

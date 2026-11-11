@@ -93,9 +93,13 @@
   const oreNodes=[];
   const waterRipples=[];
   let hero=null, config=null, path=[], waypoint=null, nextInteraction=null, level=1,xp=0,hp=100,mp=100;
-  const emptyBag=()=>({ore:0,dagger:0,fur:0,essence:0,lambari:0,tilapia:0,carpa:0,lendario:0});
+  const emptyBag=()=>({ore:0,dagger:0,fur:0,essence:0,lambari:0,tilapia:0,carpa:0,lendario:0,bait:0});
   let bag=emptyBag(),fishing=null,lastAttackAt=0,lastSpecialAt=0,lastHudTick=0;
   let totalFish=0,totalOre=0,targetUntil=0,lastEnemyHit=0;
+  const ravenaRules=globalThis.RavenaLegacyRules;
+  let coins=0,blessing={type:null,expiresAt:0};
+  let sanctuaryInside=false,sanctuaryReturn={x:-35,z:-23};
+  let originalCameraRadius=null,legacyUI=null,lastBlessingTick=0;
   let quest=0, dialogueOpen=false, toastUntil=0, lastTime=0, pulse=0, lastSave=0, currentZone="", lastMove=0;
   let lastSignUpdate=0;
   // Leitura diagnóstica opt-in apenas na pré-alfa, para validar rotas de ponta a ponta.
@@ -106,7 +110,15 @@
         snapshot:()=>({
           x:hero?.position.x??null,z:hero?.position.z??null,
           zone:currentZone,routePoints:path.length,
-          blockedAtHero:hero?blocked(hero.position.x,hero.position.z,.12):null
+          blockedAtHero:hero?blocked(hero.position.x,hero.position.z,.12):null,
+          sanctuaryInside,blessingType:ravenaRules.active(blessing),
+          bag:{...bag},coins
+        }),
+        // Diagnóstico: usa o A* normal, não teleporta ou injeta itens.
+        walkTo:(x,z)=>Number.isFinite(x)&&Number.isFinite(z)?goto(x,z):false,
+        artLoaded:()=>({
+          mae:!!scene.getMeshByName("Mãe das Águas — escultura aprovada")?.isEnabled(),
+          ravena:!!scene.getMeshByName("Estátua da Ravena — arte legada")?.isEnabled()
         })
       }),
       writable:false,configurable:false
@@ -128,6 +140,7 @@
     obstacles.push({kind:"box",x,z,halfW:width/2,halfD:depth/2});
   }
   function blocked(x,z,pad=.65) {
+    if(sanctuaryInside)return monuments.blockedInside(x,z,pad);
     if(!bounded(x,z))return true;
     // A cidade portuária protege o lago e libera apenas o corredor físico do píer.
     if(village.isLakeBlocked(x,z,pad))return true;
@@ -511,8 +524,31 @@
   const markerInner=disc("destination sparkle",0,0,.19,m.lavender,.14);
   markerInner.setEnabled(false);
 
-  // Serviço de navegação intercambiável: no futuro será substituído por NavMesh.
+  // Monumentos aprovados no PescaVena: Mãe das Águas, portal e templo separado.
+  // O módulo isola o interior em outra camada; a cena principal continua intacta.
+  const monuments=globalThis.RavenaMonuments.create({B,scene,camera,m,sign});
+  const temple=monuments.temple;
+  interactables.push({
+    id:"portal-do-crepusculo",kind:"portal",name:"Portal do Crepúsculo",
+    x:temple.entrance.x,z:temple.entrance.z,range:3.7
+  });
+  const sanctuaryPoints=[
+    {id:"altar-ravena",kind:"altar",name:"Altar da Ravena",
+      x:temple.altar.x,z:temple.altar.z,range:4.1},
+    {id:"saida-crepusculo",kind:"exit",name:"Retornar a Azarath",
+      x:temple.exit.x,z:temple.exit.z,range:3.2}
+  ];
+  // Serviço de navegação compartilhado, com coordenadas locais dentro do templo.
   function route(start,end){
+    if(sanctuaryInside){
+      const center=temple.center;
+      return globalThis.RavenaNavigation.findPath(
+        {x:start.x-center.x,z:start.z-center.z},
+        {x:end.x-center.x,z:end.z-center.z},
+        (x,z,pad)=>monuments.blockedInside(x+center.x,z+center.z,pad),
+        {cell:1,maxCell:24,maxIterations:4500}
+      ).map(p=>new B.Vector3(p.x+center.x,0,p.z+center.z));
+    }
     return globalThis.RavenaNavigation.findPath(
       {x:start.x,z:start.z},{x:end.x,z:end.z},blocked
     ).map(p=>new B.Vector3(p.x,0,p.z));
@@ -553,6 +589,7 @@
   }
   function attack(){
     if(!hero||dialogueOpen||fishing)return;
+    if(sanctuaryInside){toast("O Templo do Crepúsculo é uma área sagrada.");return;}
     const now=performance.now();
     if(now-lastAttackAt<650)return;
     if(strike(combat.classDefinition(config.kind).basic,damageRange(),"Ataque!"))
@@ -560,6 +597,7 @@
   }
   function special(){
     if(!hero||dialogueOpen||fishing)return;
+    if(sanctuaryInside){toast("A magia de combate descansa no templo.");return;}
     const now=performance.now();
     if(now-lastSpecialAt<2800){toast("Habilidade em recarga.");return;}
     if(mp<20){toast("Você precisa de 20 pontos de energia.");return;}
@@ -588,13 +626,18 @@
   }
   function save(){
     if(!hero||!config)return;
-    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({config,x:hero.position.x,z:hero.position.z,xp,level,quest,storySchema:world.schemaVersion,bag,totalFish,totalOre}));}catch{}
+    try{localStorage.setItem("ravena-online-alpha1",JSON.stringify({
+      config,x:hero.position.x,z:hero.position.z,xp,level,quest,
+      storySchema:world.schemaVersion,bag,totalFish,totalOre,
+      coins,blessing,sanctuaryInside,sanctuaryReturn
+    }));}catch{}
   }
   const bagCatalog=[
     ["ore","⛏","Minério bruto"],["dagger","⚔","Adaga forjada"],
     ["fur","🐾","Couro de lobo"],["essence","✧","Essência do Véu"],
     ["lambari","🐟","Lambari"],["tilapia","🐟","Tilápia"],
-    ["carpa","🐠","Carpa"],["lendario","✦","Peixe lendário"]
+    ["carpa","🐠","Carpa"],["lendario","✦","Peixe lendário"],
+    ["bait","🪱","Isca especial"]
   ];
   function renderBag(){
     const container=$("inventory-items");
@@ -627,6 +670,7 @@
   }
   function forgeAction(){
     if(!hero||dialogueOpen||fishing)return;
+    if(sanctuaryInside){toast("As oficinas ficam fora do santuário.");return;}
     const x=hero.position.x,z=hero.position.z,now=performance.now();
     const nearOre=oreNodes.find(n=>Math.hypot(x-n.x,z-n.z)<5);
     if(nearOre){
@@ -652,24 +696,38 @@
   }
   function fishAction(){
     if(!hero||dialogueOpen)return;
+    if(sanctuaryInside){toast("Volte à Vila das Marés para pescar.");return;}
     if(fishing){toast("Aguarde o peixe morder a isca.");return;}
     const x=hero.position.x,z=hero.position.z;
     if(!village.inPier(x,z,.15)){
       toast("Para pescar, caminhe até as tábuas do píer da Vila das Marés.");return;
     }
     path=[];marker.setEnabled(false);markerInner.setEnabled(false);
-    fishing={end:performance.now()+2700,x:hero.position.x,z:hero.position.z};
-    toast("Você lançou a linha... Observe a água!",2.6);
+    // A pesca básica é gratuita, mas a isca extra obtida por bênção pode
+    // ser consumida para melhorar discretamente a raridade da captura.
+    const usedBait=(bag.bait||0)>0;
+    if(usedBait)bag.bait--;
+    fishing={end:performance.now()+2700,x:hero.position.x,z:hero.position.z,usedBait};
+    save();
+    toast(usedBait?"Linha lançada com isca especial!":"Você lançou a linha... Observe a água!",2.6);
   }
   function finishFishing(){
+    const usedBait=!!fishing?.usedBait;
     fishing=null;
-    const roll=Math.random();
+    const roll=ravenaRules.fishingRoll(Math.random()+(usedBait?.02:0),blessing);
     const fish=roll<.48?["lambari","Lambari",7]:
       roll<.80?["tilapia","Tilápia",12]:
       roll<.975?["carpa","Carpa",19]:["lendario","Peixe lendário",65];
-    addItem(fish[0],1);totalFish++;gainXP(fish[2]);
+    const earnedXp=ravenaRules.fishingXp(fish[2],blessing);
+    addItem(fish[0],1);
+    totalFish++;
+    gainXP(earnedXp);
+    const bonusBait=ravenaRules.earnBait(totalFish,blessing);
+    if(bonusBait)addItem("bait",bonusBait);
     advanceStory("fish:any");
-    toast("Pescaria! Você capturou: "+fish[1]+" · +"+fish[2]+" XP",5);
+    legacyUI?.refresh();
+    toast("Pescaria! "+fish[1]+" · +"+earnedXp+" XP"+
+      (bonusBait?" · 🌊 +1 isca da Ravena!":""),5);
   }
   // Progresso narrativo guiado por gatilhos com IDs estáveis do catálogo.
   // Não depende da profissão nem da ordem em que o jogador visita as cidades.
@@ -693,6 +751,13 @@
   }
   function updateZone(){
     if(!hero)return;
+    if(sanctuaryInside){
+      currentZone=temple.id;
+      $("zone").textContent=temple.name;
+      $("hud").querySelector(".minimap").classList.add("hidden");
+      return;
+    }
+    $("hud").querySelector(".minimap").classList.remove("hidden");
     const region=area(hero.position.x,hero.position.z);
     if(region.id!==currentZone){
       currentZone=region.id;
@@ -714,26 +779,117 @@
     if(!$("chronicle-panel").classList.contains("hidden"))
       globalThis.RavenaJournal?.render(quest,currentZone);
   }
+  function getNearbyInteraction(){
+    if(!hero)return null;
+    const list=sanctuaryInside?sanctuaryPoints:interactables;
+    const here=hero.position;
+    return list.filter(p=>Math.hypot(p.x-here.x,p.z-here.z)<(p.range||4.6))
+      .sort((a,b)=>Math.hypot(a.x-here.x,a.z-here.z)-
+                    Math.hypot(b.x-here.x,b.z-here.z))[0]||null;
+  }
+  function closePopups(){
+    legacyUI?.close();
+    $("dialogue").classList.add("hidden");dialogueOpen=false;
+    $("inventory-panel").classList.add("hidden");
+    $("settings-panel").classList.add("hidden");
+    globalThis.RavenaJournal?.close();
+    atlas.close();
+  }
+  function changeInterior(inside,{restore=false}={}){
+    if(!hero)return;
+    closePopups();
+    path=[];fishing=null;
+    marker.setEnabled(false);markerInner.setEnabled(false);
+    if(inside&&!sanctuaryInside&&!restore)
+      sanctuaryReturn={x:hero.position.x,z:hero.position.z};
+    sanctuaryInside=inside;
+    if(inside){
+      if(originalCameraRadius===null)originalCameraRadius=camera.radius;
+      hero.position.set(temple.spawn.x,0,temple.spawn.z);
+      camera.radius=Math.min(27,camera.upperRadiusLimit);
+      camera.target.set(temple.spawn.x,1.5,temple.spawn.z);
+      monuments.setInterior(true);
+      toast("🔮 Bem-vindo ao Templo do Crepúsculo.",4);
+    }else{
+      monuments.setInterior(false);
+      camera.radius=originalCameraRadius??(window.innerWidth<=750?36:31);
+      const returning=sanctuaryReturn;
+      // Never restore into a water obstacle or invalid coordinate.
+      const rx=Number.isFinite(returning.x)?returning.x:temple.entrance.x;
+      const rz=Number.isFinite(returning.z)?returning.z:temple.entrance.z;
+      const safe=blocked(rx,rz,.25)?
+        {x:temple.entrance.x,z:temple.entrance.z+4}:{x:rx,z:rz};
+      hero.position.set(safe.x,0,safe.z);
+      camera.target.set(safe.x,1.5,safe.z);
+      toast("🌙 Você retornou a Azarath.",4);
+    }
+    currentZone="";
+    updateZone();save();
+  }
   function talk(npc){
     if(!npc)return;
-    dialogueOpen=true;path=[];marker.setEnabled(false);markerInner.setEnabled(false);
-    $("npc-name").textContent=npc.name;$("npc-text").textContent=npc.story;
+    path=[];marker.setEnabled(false);markerInner.setEnabled(false);
+    if(npc.id==="mercadora-naila"){
+      closePopups();legacyUI?.openMarket();return;
+    }
+    dialogueOpen=true;
+    $("npc-name").textContent=npc.name;$("npc-text").textContent=npc.story||"";
     $("dialogue").classList.remove("hidden");
     if(npc.id)advanceStory("talk:"+npc.id);
   }
   function interact(){
     if(!hero)return;
+    if(legacyUI?.visible)return;
     if(dialogueOpen){closeDialogue();return;}
-    const nearby=interactables.filter(n=>Math.hypot(n.x-hero.position.x,n.z-hero.position.z)<4.6)
-      .sort((a,b)=>Math.hypot(a.x-hero.position.x,a.z-hero.position.z)-Math.hypot(b.x-hero.position.x,b.z-hero.position.z))[0];
-    if(nearby)talk(nearby);
-    else toast("Aproxime-se de um personagem para conversar.");
+    const nearby=getNearbyInteraction();
+    if(!nearby){
+      toast(sanctuaryInside?"Aproxime-se do altar ou do portal de saída.":
+        "Aproxime-se de um personagem ou portal para interagir.");
+      return;
+    }
+    if(nearby.kind==="portal")changeInterior(true);
+    else if(nearby.kind==="exit")changeInterior(false);
+    else if(nearby.kind==="altar"){
+      closePopups();legacyUI?.openAltar();
+    }else talk(nearby);
   }
   function closeDialogue(){dialogueOpen=false;$("dialogue").classList.add("hidden");save();}
   $("dialogue-close").addEventListener("click",closeDialogue);
+  // A lógica de oferenda e comércio é local e validada no jogo, não na UI.
+  legacyUI=globalThis.RavenaLegacyUI.create({
+    rules:ravenaRules,getState:()=>({bag,coins,blessing}),
+    onOffer:(fishKey,type)=>{
+      if(!sanctuaryInside||!hero||
+        Math.hypot(hero.position.x-temple.altar.x,hero.position.z-temple.altar.z)>4.6)
+        return {ok:false,reason:"Você precisa estar diante do altar."};
+      const result=ravenaRules.makeOffering(bag,fishKey,type,Date.now());
+      if(!result.ok)return result;
+      addItem(result.consumes.key,-result.consumes.count);
+      blessing=result.blessing;
+      save();legacyUI?.refresh();
+      toast("🔮 A Ravena aceitou a oferenda. "+
+        ravenaRules.BLESSINGS[type].name+" ativada por 10 minutos!",5);
+      return {ok:true};
+    },
+    onSell:(fishKey)=>{
+      const merchant=world.npcs.find(n=>n.id==="mercadora-naila");
+      if(!hero||sanctuaryInside||!merchant||
+        Math.hypot(hero.position.x-merchant.x,hero.position.z-merchant.z)>5)
+        return {ok:false,reason:"Você precisa estar junto à Mercadora Naila."};
+      if(!ravenaRules.validFish(fishKey)||(bag[fishKey]||0)<1)
+        return {ok:false,reason:"Não há esse peixe na mochila."};
+      const price=ravenaRules.saleValue(ravenaRules.fishPrice(fishKey),blessing);
+      addItem(fishKey,-1);coins+=price;
+      save();toast("🪙 Venda concluída: +"+price+" moedas.",3);
+      return {ok:true,price};
+    }
+  });
+  legacyUI.refresh();
   // Em tela móvel a interação é um botão real; o teclado E continua opcional.
   $("interaction").addEventListener("click",interact);
   const showAtlas=()=>{
+    if(sanctuaryInside){toast("O templo é um interior. Use o portal de saída.");return;}
+    legacyUI?.close();
     toggleBag(false);
     $("settings-panel").classList.add("hidden");
     globalThis.RavenaJournal?.close();
@@ -838,17 +994,42 @@
       for(const key of Object.keys(bag))bag[key]=Math.max(0,Math.floor(Number(saved.bag?.[key])||0));
       totalFish=Math.max(0,Math.floor(Number(saved.totalFish)||0));
       totalOre=Math.max(0,Math.floor(Number(saved.totalOre)||0));
-      if(Number.isFinite(saved.x)&&Number.isFinite(saved.z)&&!blocked(saved.x,saved.z))hero.position.set(saved.x,0,saved.z);}
-    if(!sameSaved){level=1;xp=0;quest=0;bag=emptyBag();totalFish=0;totalOre=0;}
+      coins=Math.max(0,Math.floor(Number(saved.coins)||0));
+      const oldBuff=saved.blessing;
+      blessing=ravenaRules.validBlessing(oldBuff?.type) &&
+        Number.isFinite(oldBuff?.expiresAt)?
+        {type:oldBuff.type,expiresAt:oldBuff.expiresAt}:{type:null,expiresAt:0};
+      if(Number.isFinite(saved.sanctuaryReturn?.x)&&Number.isFinite(saved.sanctuaryReturn?.z))
+        sanctuaryReturn={x:saved.sanctuaryReturn.x,z:saved.sanctuaryReturn.z};
+      if(Number.isFinite(saved.x)&&Number.isFinite(saved.z)&&!blocked(saved.x,saved.z))
+        hero.position.set(saved.x,0,saved.z);
+      if(saved.sanctuaryInside===true){
+        sanctuaryInside=true;
+        hero.position.set(temple.spawn.x,0,temple.spawn.z);
+        monuments.setInterior(true);
+        originalCameraRadius=window.innerWidth<=750?36:31;
+        camera.radius=25;
+        camera.target.set(hero.position.x,1.5,hero.position.z);
+      }
+    }
+    if(!sameSaved){
+      level=1;xp=0;quest=0;bag=emptyBag();totalFish=0;totalOre=0;
+      sanctuaryInside=false;monuments.setInterior(false);
+      coins=0;blessing={type:null,expiresAt:0};
+    }
     hp=100+Math.max(0,level-1)*15;mp=100+Math.max(0,level-1)*10;
-    renderBag();
+    renderBag();legacyUI?.refresh();
     $("creation").classList.add("hidden");$("hud").classList.remove("hidden");
     updateStats();updateQuest();currentZone="";updateZone();save();
     toast("Bem-vindo a Azarath, "+name+"! Clique no chão para caminhar.",5);
   }
   $("start").addEventListener("click",start);
   window.addEventListener("keydown",e=>{
-    if(!hero||["INPUT","TEXTAREA"].includes(document.activeElement?.tagName))return;
+    if(!hero||["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;
+    if(legacyUI?.visible){
+      if(e.key==="Escape")legacyUI.close();
+      return;
+    }
     if(e.key.toLowerCase()==="e")interact();
     if(e.key==="1")attack();
     if(e.key==="2")special();
@@ -857,6 +1038,7 @@
       atlas.close();toggleBag(false);globalThis.RavenaJournal?.toggle(quest,currentZone);
     }
     if(e.key.toLowerCase()==="m"){
+      if(sanctuaryInside){toast("Volte pelo portal para ver o Atlas.");return;}
       toggleBag(false);
       $("settings-panel").classList.add("hidden");
       globalThis.RavenaJournal?.close();
@@ -865,7 +1047,7 @@
     }
     if(e.key==="4")forgeAction();
     if(e.key==="5")fishAction();
-    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();atlas.close();$("settings-panel").classList.add("hidden");}
+    if(e.key==="Escape"){closeDialogue();legacyUI?.close();toggleBag(false);globalThis.RavenaJournal?.close();atlas.close();$("settings-panel").classList.add("hidden");}
   });
   // Pointer only moves on a ground hit; picking characters can never teleport the player.
   let down=null;
@@ -896,6 +1078,18 @@
     // avançar a caminhada proporcionalmente, sem tornar o jogo 3x mais lento.
     const now=performance.now(),dt=Math.min((now-lastTime)/1000||.016,.18);lastTime=now;pulse+=dt;
     visuals.tick(dt);
+    monuments.animate(now);
+    // O interior não compartilha céu, luz ou névoa com a cidade externa.
+    if(sanctuaryInside){
+      scene.clearColor=new B.Color4(.075,.052,.12,1);
+      scene.fogColor=new B.Color3(.13,.085,.18);
+      scene.fogDensity=.007;
+      sun.intensity=.40;
+      dir.intensity=.55;
+    }
+    if(now-lastBlessingTick>2000){
+      lastBlessingTick=now;legacyUI?.refresh();
+    }
     if(now-lastMove>1800){
       $("graphics-fps").textContent=Math.round(engine.getFps())+" FPS · "+visuals.quality.toUpperCase();
       lastMove=now;
@@ -936,16 +1130,19 @@
       camera.target=B.Vector3.Lerp(camera.target,target,Math.min(1,dt*5));
       if(marker.isEnabled()){marker.rotation.z=pulse*.9;marker.scaling.setAll(1+Math.sin(pulse*5)*.09);}
       updateZone();
-      let nearestNpc=null,nearestDist=Infinity;
-      for(const npc of interactables){
-        const d=Math.hypot(npc.x-hero.position.x,npc.z-hero.position.z);
-        if(d<nearestDist){nearestDist=d;nearestNpc=npc;}
-      }
-      const npcAvailable=nearestDist<4.6&&!dialogueOpen;
+      const nearestNpc=getNearbyInteraction();
+      const nearestDist=nearestNpc?
+        Math.hypot(nearestNpc.x-hero.position.x,nearestNpc.z-hero.position.z):Infinity;
+      const npcAvailable=!!nearestNpc&&!dialogueOpen&&!legacyUI?.visible;
       const interactionButton=$("interaction");
       interactionButton.classList.toggle("hidden",!npcAvailable);
       if(npcAvailable){
-        const caption="◉ Conversar com "+nearestNpc.name;
+        const action=nearestNpc.kind==="portal"?"Entrar no Templo do Crepúsculo":
+          nearestNpc.kind==="exit"?"Voltar a Azarath":
+          nearestNpc.kind==="altar"?"Fazer oferenda à Ravena":
+          nearestNpc.id==="mercadora-naila"?"Abrir Mercado do Sal":
+          "Conversar com "+nearestNpc.name;
+        const caption="◉ "+action;
         if(interactionButton.textContent!==caption)interactionButton.textContent=caption;
         interactionButton.setAttribute("aria-label",caption);
       }
@@ -965,11 +1162,11 @@
           }
         }
         for(const mark of worldSigns){
-          const show=mobile
+          const show=!sanctuaryInside&&(mobile
             ?mark.kind==="landmark"&&mark===closestLandmark&&
                closestLandmarkDist<10&&nearestDist>5.5
             :((mark.kind==="npc"&&mark===closestNpcLabel&&closestNpcLabelDist<11)||
-              (mark.kind!=="npc"&&mark===closestLandmark&&closestLandmarkDist<16));
+              (mark.kind!=="npc"&&mark===closestLandmark&&closestLandmarkDist<16)));
           if(mark.mesh.isEnabled()!==show)mark.mesh.setEnabled(show);
         }
       }

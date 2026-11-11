@@ -57,11 +57,11 @@ globalThis.RavenaWorldData = Object.freeze({
     },
     {
       id:"prefeita-marina", name:"Prefeita Marina", x:35, z:-12, kind:"espadachim",
-      story:"Bem-vindo à Vila das Marés! Vivemos da pesca, do comércio e das viagens pelo lago, mas temos magos, espadachins e forjadores entre nós. Desde que o farol brilhou sozinho, objetos estranhos aparecem nas redes. Fale com Orien no cais."
+      story:"Bem-vindo à Vila das Marés! Vivemos da pesca, do comércio e das viagens pelo lago, mas temos magos, espadachins e forjadores entre nós. A Mãe das Águas voltou a ser vista em seu monumento no centro do lago. Desde que o farol brilhou sozinho, objetos estranhos aparecem nas redes. Fale com Orien no cais."
     },
     {
       id:"pescador-orien", name:"Pescador Orien", x:33, z:1, kind:"mago",
-      story:"No píer, pressione 5 para lançar a linha e espere a fisgada. A vila possui mercado, hospedaria e expedições — a pescaria é uma profissão livre, não o objetivo de todo aventureiro. Dizem que o Lago da Mãe das Águas guarda memórias em suas profundezas."
+      story:"No píer, pressione 5 para pescar. A grande escultura da Mãe abraçando a criança voltou ao centro do lago, sobre pedestal submerso. A pescaria é uma profissão livre: leve os peixes ao Mercado do Sal ou ofereça um no templo da Ravena."
     },
     {
       id:"faroleira-iara", name:"Faroleira Iara", x:44, z:20, kind:"mago",
@@ -69,7 +69,7 @@ globalThis.RavenaWorldData = Object.freeze({
     },
     {
       id:"mercadora-naila", name:"Mercadora Naila", x:30, z:-28, kind:"forjador",
-      story:"O Mercado do Sal recebe peixes, ferramentas e mercadorias de Azarath. Quando a economia online estiver pronta, comerciantes e aventureiros poderão negociar aqui. Por enquanto, visite a mochila para conferir seus recursos."
+      story:"O Mercado do Sal já compra peixes no modo solo! Você recebe moedas locais ao vender. Se estiver com Fortuna da Ravena, cada venda recebe 15% de bônus. O comércio entre jogadores ainda depende de servidor."
     },
     {
       id:"dona-celina", name:"Dona Celina", x:47,z:-22,kind:"forjador",
@@ -85,7 +85,7 @@ globalThis.RavenaWorldData = Object.freeze({
     },
     {
       id:"guardiao-floresta", name:"Guardião da Floresta", x:-38, z:-22, kind:"mago",
-      story:"As árvores da Floresta dos Sussurros guardam vozes anteriores à Capital. A história deste capítulo ainda não foi liberada, mas suas trilhas já fazem parte de Azarath."
+      story:"Entre as árvores da Floresta dos Sussurros há um portal violeta. Ele leva ao Templo do Crepúsculo, onde a Ravena aceita a oferenda de um peixe e concede bênçãos de dez minutos. Siga pela trilha e procure o portal."
     }
   ],
   story: {
