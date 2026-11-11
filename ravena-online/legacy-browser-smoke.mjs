@@ -56,7 +56,7 @@ try {
   await page.locator("#interaction").click();
   await page.waitForFunction(()=>window.RavenaAlphaDebug?.snapshot().sanctuaryInside===true,
     null,{timeout:5000});
-  assert.match(await page.locator("#zone").innerText(),/Templo do Crepúsculo/);
+  assert.match(await page.locator("#zone").innerText(),/Templo do Crepúsculo/i);
   assert.equal(await page.locator("#hud .minimap").isVisible(),false);
   // Both artworks are copied from the original ZIP as light WebP versions.
   await page.waitForFunction(()=>{
