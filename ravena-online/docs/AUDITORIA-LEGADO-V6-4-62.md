@@ -1,5 +1,7 @@
 # AUDITORIA DE PARIDADE — Ravena Pescaria RPG V6.4.62 × Ravena Online (pré-alfa 0.7)
 
+> **ATUALIZAÇÃO DE 11/11/2026:** Este documento é o retrato histórico da versão 0.7, antes da restauração. Na branch `feature/restauracao-mae-aguas-templo-ravena`, já foram restaurados os derivados das duas artes originais, o pedestal submerso da Mãe das Águas, o Templo do Crepúsculo com portal/altar e as quatro bênçãos de dez minutos, além de um mercado de peixes local. Consulte [RESTAURACAO-CRITICA-LEGADO.md](RESTAURACAO-CRITICA-LEGADO.md) para o estado mais recente. **A pesca profunda, o Mercado Noturno, as varas e as oito skins ainda não foram migrados.**
+
 **Auditoria:** 10/11/2026  
 **Escopo:** análise do ZIP original `Ravena_V6_4_62_Atelie_Arte_e_Sprites.zip` e de quatro ZIPs de controle V6.4.36, V6.4.42, V6.4.53, V6.4.57, confrontados com os fontes `ravena-online/` nesta branch.  
 **Conclusão:** **NÃO HÁ PARIDADE**. O Ravena Online é uma base 3D separada para um MMORPG maior, mas perdeu temporariamente marcos narrativos, arte e vários subsistemas da pescaria antiga. **Não confundir ausência no novo jogo com exclusão deliberada do projeto.**
