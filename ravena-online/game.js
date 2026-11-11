@@ -998,7 +998,11 @@
   }
   $("start").addEventListener("click",start);
   window.addEventListener("keydown",e=>{
-    if(!hero||["INPUT","TEXTAREA"].includes(document.activeElement?.tagName))return;
+    if(!hero||["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;
+    if(legacyUI?.visible){
+      if(e.key==="Escape")legacyUI.close();
+      return;
+    }
     if(e.key.toLowerCase()==="e")interact();
     if(e.key==="1")attack();
     if(e.key==="2")special();
@@ -1007,6 +1011,7 @@
       atlas.close();toggleBag(false);globalThis.RavenaJournal?.toggle(quest,currentZone);
     }
     if(e.key.toLowerCase()==="m"){
+      if(sanctuaryInside){toast("Volte pelo portal para ver o Atlas.");return;}
       toggleBag(false);
       $("settings-panel").classList.add("hidden");
       globalThis.RavenaJournal?.close();
@@ -1015,7 +1020,7 @@
     }
     if(e.key==="4")forgeAction();
     if(e.key==="5")fishAction();
-    if(e.key==="Escape"){closeDialogue();toggleBag(false);globalThis.RavenaJournal?.close();atlas.close();$("settings-panel").classList.add("hidden");}
+    if(e.key==="Escape"){closeDialogue();legacyUI?.close();toggleBag(false);globalThis.RavenaJournal?.close();atlas.close();$("settings-panel").classList.add("hidden");}
   });
   // Pointer only moves on a ground hit; picking characters can never teleport the player.
   let down=null;
@@ -1046,6 +1051,18 @@
     // avançar a caminhada proporcionalmente, sem tornar o jogo 3x mais lento.
     const now=performance.now(),dt=Math.min((now-lastTime)/1000||.016,.18);lastTime=now;pulse+=dt;
     visuals.tick(dt);
+    monuments.animate(now);
+    // O interior não compartilha céu, luz ou névoa com a cidade externa.
+    if(sanctuaryInside){
+      scene.clearColor=new B.Color4(.075,.052,.12,1);
+      scene.fogColor=new B.Color3(.13,.085,.18);
+      scene.fogDensity=.007;
+      sun.intensity=.40;
+      dir.intensity=.55;
+    }
+    if(now-lastBlessingTick>2000){
+      lastBlessingTick=now;legacyUI?.refresh();
+    }
     if(now-lastMove>1800){
       $("graphics-fps").textContent=Math.round(engine.getFps())+" FPS · "+visuals.quality.toUpperCase();
       lastMove=now;
@@ -1086,16 +1103,19 @@
       camera.target=B.Vector3.Lerp(camera.target,target,Math.min(1,dt*5));
       if(marker.isEnabled()){marker.rotation.z=pulse*.9;marker.scaling.setAll(1+Math.sin(pulse*5)*.09);}
       updateZone();
-      let nearestNpc=null,nearestDist=Infinity;
-      for(const npc of interactables){
-        const d=Math.hypot(npc.x-hero.position.x,npc.z-hero.position.z);
-        if(d<nearestDist){nearestDist=d;nearestNpc=npc;}
-      }
-      const npcAvailable=nearestDist<4.6&&!dialogueOpen;
+      const nearestNpc=getNearbyInteraction();
+      const nearestDist=nearestNpc?
+        Math.hypot(nearestNpc.x-hero.position.x,nearestNpc.z-hero.position.z):Infinity;
+      const npcAvailable=!!nearestNpc&&!dialogueOpen&&!legacyUI?.visible;
       const interactionButton=$("interaction");
       interactionButton.classList.toggle("hidden",!npcAvailable);
       if(npcAvailable){
-        const caption="◉ Conversar com "+nearestNpc.name;
+        const action=nearestNpc.kind==="portal"?"Entrar no Templo do Crepúsculo":
+          nearestNpc.kind==="exit"?"Voltar a Azarath":
+          nearestNpc.kind==="altar"?"Fazer oferenda à Ravena":
+          nearestNpc.id==="mercadora-naila"?"Abrir Mercado do Sal":
+          "Conversar com "+nearestNpc.name;
+        const caption="◉ "+action;
         if(interactionButton.textContent!==caption)interactionButton.textContent=caption;
         interactionButton.setAttribute("aria-label",caption);
       }
@@ -1115,11 +1135,11 @@
           }
         }
         for(const mark of worldSigns){
-          const show=mobile
+          const show=!sanctuaryInside&&(mobile
             ?mark.kind==="landmark"&&mark===closestLandmark&&
                closestLandmarkDist<10&&nearestDist>5.5
             :((mark.kind==="npc"&&mark===closestNpcLabel&&closestNpcLabelDist<11)||
-              (mark.kind!=="npc"&&mark===closestLandmark&&closestLandmarkDist<16));
+              (mark.kind!=="npc"&&mark===closestLandmark&&closestLandmarkDist<16)));
           if(mark.mesh.isEnabled()!==show)mark.mesh.setEnabled(show);
         }
       }
